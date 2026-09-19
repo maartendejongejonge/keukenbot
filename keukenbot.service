@@ -1,0 +1,46 @@
+; Naar /etc/systemd/system/keukenbot.service
+;
+;   sudo cp keukenbot.service /etc/systemd/system/
+;   sudo systemctl daemon-reload
+;   sudo systemctl enable --now keukenbot
+;
+; Meekijken:  journalctl -u keukenbot -f
+;
+; Geen pm2: systemd zit er al op, herstart na een reboot en schrijft naar
+; het journaal. Eén laag minder om te onderhouden.
+
+[Unit]
+Description=Keukenbot — WhatsApp-loket en agenda
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=keukenbot
+WorkingDirectory=/opt/keukenbot
+EnvironmentFile=/opt/keukenbot/.env
+ExecStart=/usr/bin/node dist/runner.js
+
+; Baileys verliest regelmatig de verbinding; altijd terugkomen.
+Restart=always
+RestartSec=10
+
+; Niet oneindig snel herstarten bij een echte fout — dan valt hij stil
+; en zie je het in de logs in plaats van dat hij duizend keer per minuut
+; opnieuw inlogt bij WhatsApp.
+StartLimitIntervalSec=300
+StartLimitBurst=10
+
+; Beperkingen: de service heeft alleen zijn eigen map nodig.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/keukenbot
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=keukenbot
+
+[Install]
+WantedBy=multi-user.target
