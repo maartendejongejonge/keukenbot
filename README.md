@@ -62,34 +62,57 @@ besluitvorming. Wat nog ontbreekt is het proces dat alles aan elkaar knoopt.
 | Onderdeel | Status |
 | --- | --- |
 | Productplan | af |
-| Datamodel (Supabase) | geschreven, nog niet gedraaid |
+| Datamodel (Supabase) | gedraaid, profiel en kanaal van Rotterdam Keukenmontage staan erin |
 | Kwalificatie en harde grenzen | af |
 | Agendaplanner | af |
-| Google Agenda-koppeling | af, nog niet getest |
+| Reiskosten | af |
+| Google Agenda-koppeling | af, test met `npm run check` |
 | Besluitvorming (orchestrator) | af |
-| VPS ingericht | af |
-| De runner die alles start | **nog te doen** |
-| Melding aan de monteur bij overdracht | nog te doen |
+| VPS | herinstalleerd en ingericht op 1 okt 2026 |
+| De runner die alles start | af, nog niet live gezet |
+| Melding aan de monteur bij overdracht | af (via WhatsApp, in de runner) |
 | Webinterface voor monteurs | nog te doen |
 
 ## De bestanden
 
 ```
-supabase/migrations/0001_init.sql   datamodel, per monteur gescheiden
+src/runner.ts                       het proces op de VPS: knoopt alles aan elkaar
+src/check.ts                        controleert .env en alle koppelingen (npm run check)
 src/kwalificatie.ts                 de zeven vragen, de harde grenzen, de toon
 src/planner.ts                      werktijden, reistijd, buffer, vrije momenten
+src/reiskosten.ts                   afstand, rijtijd en reiskosten per postcode
 src/agenda.ts                       Google Agenda lezen en schrijven
 src/orchestrator.ts                 bericht in → antwoord, afwijzing, voorstel of overdracht
-src/transport.ts                    WhatsApp-verbinding, achter één interface
-scripts/koppel-agenda.mjs           eenmalig een agenda koppelen
-deploy/setup-vps.sh                 de server inrichten
+src/transport.ts                    WhatsApp-verbinding (Baileys), achter één interface
+supabase/migrations/                datamodel, per monteur gescheiden
+scripts/koppel-agenda.mjs           eenmalig een agenda koppelen (op je laptop)
+deploy/setup-vps.sh                 een verse server inrichten (één keer)
+deploy/installeer-app.sh            code ophalen, bouwen, service installeren (ook voor updates)
+deploy/env.voorbeeld                sjabloon voor /opt/keukenbot/.env
 deploy/keukenbot.service            zorgt dat de bot blijft draaien
 api/whatsapp.ts                     voor later, bij de officiële WhatsApp API
 ```
 
+## Op de server zetten of bijwerken
+
+Inloggen als je eigen gebruiker (niet `keukenbot`, die heeft geen sudo):
+
+```bash
+ssh maartendejonge24@149.210.205.238
+cd ~/keukenbot && git pull
+sudo bash deploy/installeer-app.sh
+cd /opt/keukenbot && sudo -u keukenbot npm run check
+sudo systemctl start keukenbot
+journalctl -u keukenbot -f
+```
+
+De eerste start toont een KOPPELCODE in het logboek. Die typ je over op de
+telefoon met het wegwerpnummer: WhatsApp → Gekoppelde apparaten → Apparaat
+koppelen → Koppelen met telefoonnummer.
+
 ## Waar het draait
 
-Op een VPS bij TransIP (Ubuntu 26.04). Niet op Vercel: de WhatsApp-verbinding
+Op een VPS bij TransIP (Ubuntu 26.04), in `/opt/keukenbot`, als gebruiker `keukenbot`. Niet op Vercel: de WhatsApp-verbinding
 moet permanent openstaan, en een serverless functie stopt zodra hij geantwoord
 heeft.
 
@@ -119,8 +142,8 @@ zoekt hij wel gaten binnen één dag.
 
 1. ~~VPS inrichten~~ — gedaan
 2. ~~Google Agenda koppelen~~ — gedaan
-3. Supabase-project aanmaken en de migratie draaien
-4. De runner schrijven en de bot laten draaien
+3. ~~Supabase-project aanmaken en de migratie draaien~~ — gedaan
+4. ~~De runner schrijven~~ — gedaan; nu de bot laten draaien
 5. **Meelezen zonder antwoorden**: een week lang gaat elk besluit naar de
    monteur in plaats van naar de klant
 6. Pas daarna echt laten antwoorden

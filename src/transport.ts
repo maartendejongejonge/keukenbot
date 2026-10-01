@@ -11,7 +11,7 @@
  *
  * Gevolg voor de hosting: Baileys kan NIET op Vercel. Een serverless functie
  * gaat uit de lucht zodra het antwoord verstuurd is, en dan valt de sessie weg.
- * Dit draait op de mini-pc thuis of op een kleine VPS.
+ * Dit draait op een kleine VPS (TransIP).
  */
 
 export interface InkomendBericht {
@@ -55,9 +55,24 @@ export function baileysTransport(opts: {
         await import('@whiskeysockets/baileys');
 
       const { state, saveCreds } = await useMultiFileAuthState(opts.authDir);
-      sock = makeWASocket({ auth: state, printQRInTerminal: true });
+      sock = makeWASocket({ auth: state });
 
       sock.ev.on('creds.update', saveCreds);
+
+      // Eerste keer: koppelen met een code in plaats van een QR-code. Een QR
+      // tekent niet betrouwbaar in een SSH-venster; een code van acht tekens
+      // typ je gewoon over in WhatsApp → Gekoppelde apparaten → Koppelen met
+      // telefoonnummer.
+      if (!state.creds.registered) {
+        setTimeout(async () => {
+          try {
+            const code = await sock.requestPairingCode(opts.eigenNummer);
+            log(`KOPPELCODE: ${code}  (WhatsApp → Gekoppelde apparaten → Koppelen met telefoonnummer)`);
+          } catch (e) {
+            log(`koppelcode aanvragen mislukt: ${String(e)}`);
+          }
+        }, 3_000);
+      }
 
       sock.ev.on('connection.update', (u: any) => {
         if (u.connection === 'open') log('verbonden');
@@ -77,7 +92,10 @@ export function baileysTransport(opts: {
 
         for (const m of messages) {
           if (m.key.fromMe) continue;
-          if (m.key.remoteJid?.endsWith('@g.us')) continue; // geen groepen
+          const jid: string = m.key.remoteJid ?? '';
+          if (jid.endsWith('@g.us')) continue;          // geen groepen
+          if (jid === 'status@broadcast') continue;     // geen statusupdates
+          if (jid.endsWith('@newsletter')) continue;    // geen kanalen
 
           const tekst =
             m.message?.conversation ?? m.message?.extendedTextMessage?.text ?? '';
@@ -86,7 +104,9 @@ export function baileysTransport(opts: {
           try {
             await onBericht({
               kanaalSleutel: opts.eigenNummer,
-              vanNummer: (m.key.remoteJid ?? '').replace(/@s\.whatsapp\.net$/, ''),
+              // Nieuwere WhatsApp-versies sturen soms een anoniem id (@lid) in
+              // plaats van het nummer; senderPn bevat dan het echte nummer.
+              vanNummer: (m.key.senderPn ?? jid).replace(/@s\.whatsapp\.net$/, '').replace(/:\d+$/, ''),
               tekst,
               ontvangenOp: new Date((Number(m.messageTimestamp) || 0) * 1000),
             });
