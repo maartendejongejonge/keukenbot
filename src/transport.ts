@@ -56,6 +56,20 @@ export function baileysTransport(opts: {
   let sock: any;
   const log = opts.logger ?? ((m: string) => console.log(`[baileys] ${m}`));
 
+  // Deze drie overleven een herverbinding (ze staan buiten start()).
+  //
+  // 1. Het adres waarop een klant écht schrijft. Nieuwere WhatsApp-versies
+  //    gebruiken een anoniem id (…@lid). Antwoord je dan op 06…@s.whatsapp.net,
+  //    dan kan de telefoon van de klant het bericht niet ontsleutelen en ziet
+  //    hij "Wachten op dit bericht". Dus: altijd terugschrijven naar het adres
+  //    waar het bericht vandaan kwam.
+  const adresVan = new Map<string, string>();
+  // 2. Verstuurde berichten, zodat een telefoon die een bericht niet kon
+  //    ontsleutelen het opnieuw kan opvragen (getMessage).
+  const verstuurd = new Map<string, unknown>();
+  // 3. Teller voor die herhaalverzoeken.
+  const retryTeller = maakCache();
+
   return {
     naam: 'baileys',
 
@@ -63,13 +77,18 @@ export function baileysTransport(opts: {
       const {
         default: makeWASocket,
         useMultiFileAuthState,
+        makeCacheableSignalKeyStore,
         DisconnectReason,
         downloadMediaMessage,
         normalizeMessageContent,
       } = await import('@whiskeysockets/baileys');
 
       const { state, saveCreds } = await useMultiFileAuthState(opts.authDir);
-      sock = makeWASocket({ auth: state });
+      sock = makeWASocket({
+        auth: { creds: state.creds, keys: makeCacheableSignalKeyStore(state.keys) },
+        msgRetryCounterCache: retryTeller,
+        getMessage: async (key: any) => verstuurd.get(key.id) as any,
+      });
 
       sock.ev.on('creds.update', saveCreds);
 
@@ -143,12 +162,18 @@ export function baileysTransport(opts: {
 
           if (!tekst.trim() && !media) continue;
 
+          const vanNummer = (m.key.senderPn ?? jid)
+            .replace(/@s\.whatsapp\.net$/, '')
+            .replace(/:\d+$/, '');
+          adresVan.set(vanNummer, jid);
+          log(`bericht van ${vanNummer} via ${jid}${media ? ` (${media.soort})` : ''}`);
+
           try {
             await onBericht({
               kanaalSleutel: opts.eigenNummer,
               // Nieuwere WhatsApp-versies sturen soms een anoniem id (@lid) in
               // plaats van het nummer; senderPn bevat dan het echte nummer.
-              vanNummer: (m.key.senderPn ?? jid).replace(/@s\.whatsapp\.net$/, '').replace(/:\d+$/, ''),
+              vanNummer,
               tekst,
               media,
               ontvangenOp: new Date((Number(m.messageTimestamp) || 0) * 1000),
@@ -163,15 +188,34 @@ export function baileysTransport(opts: {
     },
 
     async stuur(naar, tekst) {
-      const jid = naar.includes('@') ? naar : `${naar}@s.whatsapp.net`;
+      const jid = naar.includes('@') ? naar : adresVan.get(naar) ?? `${naar}@s.whatsapp.net`;
       // Even wachten voor verzenden: direct antwoorden binnen een seconde valt
       // op als bot, zowel bij de klant als bij WhatsApp zelf.
       await new Promise((r) => setTimeout(r, 1_500 + Math.random() * 2_500));
-      await sock.sendMessage(jid, { text: tekst });
+      const msg = await sock.sendMessage(jid, { text: tekst });
+      log(`verstuurd naar ${jid}`);
+      if (msg?.key?.id) {
+        verstuurd.set(msg.key.id, msg.message);
+        if (verstuurd.size > 1000) verstuurd.delete(verstuurd.keys().next().value!);
+      }
     },
 
     async stop() {
       await sock?.end?.();
     },
+  };
+}
+
+/** Eenvoudige cache volgens Baileys' CacheStore-vorm, zonder extra pakket. */
+function maakCache() {
+  const m = new Map<string, unknown>();
+  return {
+    get: <T>(k: string) => m.get(k) as T | undefined,
+    set: <T>(k: string, v: T) => {
+      m.set(k, v);
+      if (m.size > 5000) m.delete(m.keys().next().value!);
+    },
+    del: (k: string) => void m.delete(k),
+    flushAll: () => m.clear(),
   };
 }
