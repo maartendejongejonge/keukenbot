@@ -14,7 +14,8 @@
 import { createClient } from '@supabase/supabase-js';
 import { baileysTransport, type InkomendBericht } from './transport.js';
 import { verwerkBericht, type Besluit, type LeadContext } from './orchestrator.js';
-import type { Kwalificatie } from './kwalificatie.js';
+import { CONFIDENCE_DREMPEL, systeemprompt, type Kwalificatie, type PrijsContext } from './kwalificatie.js';
+import { keuzePrompt, leesKeuze, omschrijfSlot, snelleKeuze, type KeuzeUitkomst } from './keuze.js';
 import { mediaNaarTekst } from './media.js';
 import { prijsOpbouw, prijzenActief, type PrijsProfiel, type Prijsindicatie, type Uurnormen } from './prijs.js';
 import { bezetting as agendaBezetting, vastleggen, type GoogleKoppeling } from './agenda.js';
@@ -129,6 +130,26 @@ async function behandel(b: InkomendBericht) {
 
   const lead = await vindOfMaakLead(monteurId, kanaal.data.id, b.vanNummer);
 
+  // Overgedragen of ingepland: de bot zwijgt, de monteur krijgt het bericht.
+  if (lead.status === 'overgedragen' || lead.status === 'ingepland') {
+    await bewaarKlantbericht(lead.id, b.tekst);
+    await naarMonteur(
+      `${lead.status === 'ingepland' ? 'Ingeplande klant' : 'Overgedragen gesprek'} ` +
+        `${b.vanNummer}${lead.klant_naam ? ` (${lead.klant_naam})` : ''} schrijft — de bot antwoordt niet:\n\n` +
+        b.tekst.slice(0, 1500),
+    );
+    return;
+  }
+
+  // Er staan nog momenten open waaruit de klant kan kiezen.
+  if (lead.status === 'gekwalificeerd') {
+    const open = await openVoorstel(lead.id);
+    if (open.length) {
+      await behandelKeuze(b, lead, profiel, open, monteurId);
+      return;
+    }
+  }
+
   // De historie zonder het bericht van nu: dat gaat apart naar het model.
   const hist = await historie(lead.id);
 
@@ -143,16 +164,7 @@ async function behandel(b: InkomendBericht) {
     kwalificatie: pakKwalificatie(lead),
     vervolgvragen: await telBotberichten(lead.id),
     historie: hist,
-    prijsGegeven: lead.prijs_gegeven_op
-      ? {
-          min: Number(lead.prijs_min),
-          max: Number(lead.prijs_max),
-          incl_btw: Boolean(lead.prijs_incl_btw),
-          dagen_min: Number(lead.dagen_min),
-          dagen_max: Number(lead.dagen_max),
-          posten: Array.isArray(lead.werk?._posten) ? lead.werk._posten : [],
-        }
-      : undefined,
+    prijsGegeven: prijsGegevenVan(lead),
   };
 
   const prijsProfiel = maakPrijsProfiel(profiel);
@@ -232,27 +244,208 @@ async function behandel(b: InkomendBericht) {
     }
 
     case 'overdracht': {
-      await db.from('leads').update({ status: 'overgedragen' }).eq('id', lead.id);
-      await db.from('review_items').insert({
-        monteur_id: monteurId,
-        lead_id: lead.id,
-        reden: besluit.reden,
-        samenvatting: besluit.samenvatting,
-        voorgesteld_antwoord: besluit.concept ?? null,
-      });
-      await naarMonteur(
-        `Overdracht (${besluit.reden})\nvan ${b.vanNummer}\n${besluit.samenvatting}` +
-          (besluit.concept ? `\n\nVoorstel antwoord:\n${besluit.concept}` : ''),
-      );
-      if (!MEELEZEN) {
-        await transport.stuur(
-          b.vanNummer,
-          `Ik leg dit even voor aan ${profiel.aanspreeknaam || 'de monteur'}, hij reageert vandaag zelf.`,
-        );
-      }
+      await draagOver(lead.id, monteurId, b.vanNummer, profiel, besluit.reden, besluit.samenvatting, besluit.concept);
       break;
     }
   }
+}
+
+/**
+ * Overdracht aan de monteur. Vanaf nu zwijgt de bot in dit gesprek; nieuwe
+ * berichten van de klant gaan rechtstreeks door naar de monteur.
+ */
+async function draagOver(
+  leadId: string,
+  monteurId: string,
+  nummer: string,
+  profiel: any,
+  reden: string,
+  samenvatting: string,
+  concept?: string,
+  klanttekst?: string,
+) {
+  await db.from('leads').update({ status: 'overgedragen' }).eq('id', leadId);
+  await db.from('review_items').insert({
+    monteur_id: monteurId,
+    lead_id: leadId,
+    reden,
+    samenvatting,
+    voorgesteld_antwoord: concept ?? null,
+  });
+  await naarMonteur(
+    `Overdracht (${reden})\nvan ${nummer}\n${samenvatting}` +
+      (concept ? `\n\nVoorstel antwoord:\n${concept}` : '') +
+      `\n\nDe bot antwoordt deze klant niet meer; reageer zelf vanaf het botnummer.`,
+  );
+  const tekst =
+    klanttekst ?? `Ik leg dit even voor aan ${profiel.aanspreeknaam || 'de monteur'}, hij reageert vandaag zelf.`;
+  if (!MEELEZEN) await transport.stuur(nummer, tekst);
+  await db.from('berichten').insert({ lead_id: leadId, richting: 'uit', afzender: 'bot', tekst });
+}
+
+// ------------------------------------------------------- keuze uit voorstel
+
+async function openVoorstel(leadId: string) {
+  const { data } = await db
+    .from('afspraken')
+    .select('*')
+    .eq('lead_id', leadId)
+    .eq('status', 'voorlopig')
+    .gt('vervalt_op', new Date().toISOString())
+    .order('start_op', { ascending: true });
+  return data ?? [];
+}
+
+async function behandelKeuze(b: InkomendBericht, lead: any, profiel: any, open: any[], monteurId: string) {
+  const hist = await historie(lead.id);
+  await bewaarKlantbericht(lead.id, b.tekst);
+
+  const slots = open.map((a) => ({
+    soort: a.soort as 'inmeting' | 'montage',
+    start: new Date(a.start_op),
+    dagen: a.soort === 'montage' ? werkdagenVan(lead) : undefined,
+  }));
+
+  let uit: KeuzeUitkomst;
+  const snel = snelleKeuze(b.tekst, open.length);
+  if (snel) {
+    uit = { keuze: snel, geen_past: false, antwoord: '', confidence: 1 };
+  } else {
+    const prijsCtx: PrijsContext | null = maakPrijsProfiel(profiel) ? { gegeven: prijsGegevenVan(lead) } : null;
+    const systeem = systeemprompt(profiel, prijsCtx) + '\n\n' + keuzePrompt(slots);
+    uit = leesKeuze(await duidBericht(systeem, hist, b.tekst), open.length);
+  }
+
+  const naam = profiel.aanspreeknaam || 'de monteur';
+  const opties = slots.map((s, i) => `${i + 1}. ${omschrijfSlot(s)}`).join('\n');
+
+  if (uit.keuze && !uit.overdracht) {
+    await bevestig(b, lead, profiel, open[uit.keuze - 1], monteurId);
+    return;
+  }
+
+  if (uit.geen_past) {
+    await db.from('afspraken').update({ status: 'geannuleerd' })
+      .eq('lead_id', lead.id).eq('status', 'voorlopig');
+    await draagOver(
+      lead.id, monteurId, b.vanNummer, profiel, 'buiten_regels',
+      `Geen van de voorgestelde momenten past.\nVoorgesteld:\n${opties}\nKlant: "${b.tekst.slice(0, 500)}"`,
+      uit.antwoord || undefined,
+      `Dan leg ik het voor aan ${naam}. Hij neemt contact met u op over een ander moment.`,
+    );
+    return;
+  }
+
+  if (uit.overdracht || uit.confidence < CONFIDENCE_DREMPEL || !uit.antwoord.trim()) {
+    await draagOver(
+      lead.id, monteurId, b.vanNummer, profiel, uit.overdracht ?? 'lage_confidence',
+      `Klant reageerde op het voorstel, bot weet het niet zeker.\nVoorgesteld:\n${opties}\nKlant: "${b.tekst.slice(0, 500)}"`,
+      uit.antwoord || undefined,
+    );
+    return;
+  }
+
+  await naarKlant(b.vanNummer, uit.antwoord, lead.id, monteurId, 'vervolgvraag');
+}
+
+/** De gekozen afspraak in Google zetten, de rest vrijgeven, iedereen inlichten. */
+async function bevestig(b: InkomendBericht, lead: any, profiel: any, gekozen: any, monteurId: string) {
+  const start = new Date(gekozen.start_op);
+  const eind = new Date(gekozen.eind_op);
+  const naam = profiel.aanspreeknaam || 'de monteur';
+  const omschrijving = omschrijfSlot({ soort: gekozen.soort, start, dagen: werkdagenVan(lead) });
+
+  let eventId: string | null = null;
+  if (!MEELEZEN) {
+    try {
+      // Is het moment intussen in Google bezet geraakt (zelf iets ingepland)?
+      const dagen = Math.ceil((+eind - +start) / 86_400_000) + 1;
+      const bezet = await agendaBezetting(google, start, dagen, []);
+      if (bezet.some((x) => x.start < eind && x.eind > start)) {
+        await draagOver(
+          lead.id, monteurId, b.vanNummer, profiel, 'buiten_regels',
+          `Klant koos ${omschrijving}, maar dat staat intussen bezet in de agenda.`,
+          undefined,
+          `Ik check het moment nog even met ${naam}, hij bevestigt het vandaag zelf.`,
+        );
+        return;
+      }
+
+      eventId = await vastleggen(google, {
+        soort: gekozen.soort,
+        start,
+        eind,
+        klantNaam: lead.klant_naam ?? undefined,
+        klantTelefoon: b.vanNummer,
+        adres: lead.plaats ?? (lead.pc4 ? String(lead.pc4) : undefined),
+        notitie: agendaNotitie(lead),
+      });
+    } catch (e) {
+      console.error('vastleggen mislukt:', String(e));
+      await draagOver(
+        lead.id, monteurId, b.vanNummer, profiel, 'buiten_regels',
+        `Klant koos ${omschrijving}, maar wegschrijven in Google Agenda mislukte: ${String(e)}`,
+        undefined,
+        `Ik check het moment nog even met ${naam}, hij bevestigt het vandaag zelf.`,
+      );
+      return;
+    }
+  }
+
+  await db.from('afspraken').update({ status: 'bevestigd', google_event_id: eventId, vervalt_op: null })
+    .eq('id', gekozen.id);
+  await db.from('afspraken').update({ status: 'geannuleerd' })
+    .eq('lead_id', lead.id).eq('status', 'voorlopig');
+  await db.from('leads').update({ status: 'ingepland', laatste_bericht_op: new Date().toISOString() })
+    .eq('id', lead.id);
+
+  const duur =
+    lead.dagen_min && lead.dagen_max ? ` en duurt ${lead.dagen_min} tot ${lead.dagen_max} werkdagen` : '';
+  const tekst =
+    gekozen.soort === 'montage'
+      ? `Genoteerd: de montage begint ${omschrijfSlot({ soort: 'inmeting', start }).split(' om ')[0]}${duur}. ` +
+        `${naam} neemt vooraf contact met u op over de laatste details. Wilt u het adres nog sturen?`
+      : `Genoteerd: ${naam} komt ${omschrijfSlot({ soort: 'inmeting', start })} inmeten. Wilt u het adres nog sturen?`;
+
+  await naarKlant(b.vanNummer, tekst, lead.id, monteurId, 'bevestiging');
+  await naarMonteur(
+    `Ingepland: ${gekozen.soort} ${omschrijving}\nklant ${b.vanNummer}${lead.klant_naam ? ` (${lead.klant_naam})` : ''}` +
+      `\n${agendaNotitie(lead)}` +
+      (eventId ? '\nStaat in je Google Agenda.' : MEELEZEN ? '\n(meeleesmodus: niet in Google gezet)' : ''),
+  );
+}
+
+function agendaNotitie(lead: any): string {
+  const w = lead.werk ?? {};
+  const kasten = (w.onderkasten ?? 0) + (w.hangkasten ?? 0) + (w.hoge_kasten ?? 0);
+  return [
+    lead.pc4 ? `Postcode ${lead.pc4}${lead.plaats ? ` ${lead.plaats}` : ''}` : null,
+    lead.verdieping != null ? `${lead.verdieping}e verdieping${lead.lift === false ? ', geen lift' : ''}` : null,
+    kasten ? `${kasten} kasten${w.levering ? ` (${w.levering})` : ''}${lead.leverancier ? `, ${lead.leverancier}` : ''}` : null,
+    lead.werkblad_door ? `Werkblad: ${lead.werkblad_door}` : null,
+    lead.prijs_min ? `Indicatie € ${lead.prijs_min}–${lead.prijs_max} ${lead.prijs_incl_btw ? 'incl.' : 'excl.'} btw` : null,
+  ].filter(Boolean).join('\n');
+}
+
+function werkdagenVan(lead: any): number | undefined {
+  return lead.dagen_max ? Number(lead.dagen_max) : undefined;
+}
+
+function prijsGegevenVan(lead: any): PrijsContext['gegeven'] {
+  if (!lead.prijs_gegeven_op) return undefined;
+  return {
+    min: Number(lead.prijs_min),
+    max: Number(lead.prijs_max),
+    incl_btw: Boolean(lead.prijs_incl_btw),
+    dagen_min: Number(lead.dagen_min),
+    dagen_max: Number(lead.dagen_max),
+    posten: Array.isArray(lead.werk?._posten) ? lead.werk._posten : [],
+  };
+}
+
+async function bewaarKlantbericht(leadId: string, tekst: string) {
+  await db.from('berichten').insert({ lead_id: leadId, richting: 'in', afzender: 'klant', tekst });
+  await db.from('leads').update({ laatste_bericht_op: new Date().toISOString() }).eq('id', leadId);
 }
 
 // ------------------------------------------------------------- uitgaand
@@ -388,12 +581,19 @@ async function vindOfMaakLead(monteurId: string, kanaalId: string, nummer: strin
     .select('*')
     .eq('monteur_id', monteurId)
     .eq('klant_telefoon', nummer)
-    .in('status', ['nieuw', 'kwalificeren', 'gekwalificeerd'])
+    .in('status', ['nieuw', 'kwalificeren', 'gekwalificeerd', 'overgedragen', 'ingepland'])
     .order('aangemaakt_op', { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  if (data) return data;
+  // Een overgedragen gesprek blijft twee weken bij de monteur, een ingeplande
+  // klant twee maanden. Daarna is een nieuw bericht een nieuwe aanvraag.
+  if (data) {
+    const laatst = +new Date(data.laatste_bericht_op ?? data.aangemaakt_op);
+    const dagen = (Date.now() - laatst) / 86_400_000;
+    const grens = data.status === 'overgedragen' ? 14 : data.status === 'ingepland' ? 60 : Infinity;
+    if (dagen <= grens) return data;
+  }
 
   const { data: nieuw } = await db
     .from('leads')

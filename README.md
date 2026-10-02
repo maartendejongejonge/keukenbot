@@ -74,6 +74,13 @@ aanleggen, slopen) gaat altijd naar de monteur.
   (`aanspreeknaam`). Geen korting. De monteur krijgt een seintje.
 - Meerdere berichten of bestanden achter elkaar worden gebundeld en in één
   keer beantwoord (`BUNDEL_SECONDEN`, standaard 15).
+- De voorgestelde momenten zijn genummerd. Kiest de klant er één (nummer of
+  eigen woorden), dan gaat de afspraak in Google Agenda, vervallen de andere
+  reserveringen en krijgt de monteur een bevestiging. Past geen moment, dan
+  gaat het gesprek naar de monteur.
+- Na een overdracht of een ingeplande afspraak antwoordt de bot die klant niet
+  meer; nieuwe berichten gaan door naar de monteur (14 dagen na overdracht,
+  60 dagen na inplannen). De monteur antwoordt zelf vanaf het botnummer.
 
 Offertes, meerwerk en facturen komen later. Eerst moet dit ene ding goed werken.
 
@@ -96,6 +103,8 @@ besluitvorming. Wat nog ontbreekt is het proces dat alles aan elkaar knoopt.
 | Melding aan de monteur bij overdracht | af (via WhatsApp, in de runner) |
 | Foto's en PDF's uitlezen | af (overgenomen uit Sanne, 02-10-2026) |
 | Prijsindicatie per monteur | af, alleen aan voor Rotterdam Keukenmontage |
+| Klant kiest een moment → Google Agenda | af (02-10-2026) |
+| Bot zwijgt na overdracht of inplannen | af (02-10-2026) |
 | Webinterface voor monteurs | nog te doen |
 
 ## De bestanden
@@ -107,6 +116,7 @@ src/kwalificatie.ts                 de vragen, de harde grenzen, de gespreksrege
 src/prijs.ts                        prijsindicatie uit uurnormen (alleen als de monteur dat aanzet)
 src/prijs.test.ts                   rekentest op de referentiekeukens (npm run test:prijs)
 src/media.ts                        foto's en PDF's van klanten laten uitlezen
+src/keuze.ts                        welk voorgesteld moment kiest de klant
 src/planner.ts                      werktijden, reistijd, buffer, vrije momenten
 src/reiskosten.ts                   afstand, rijtijd en reiskosten per postcode
 src/agenda.ts                       Google Agenda lezen en schrijven

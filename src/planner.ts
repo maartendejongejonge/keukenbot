@@ -273,13 +273,13 @@ export function formuleerVoorstel(slots: Slot[]): string {
 
   if (slots[0].soort === 'montage') {
     const regels = slots
-      .map((s) => `- vanaf ${datum.format(s.start)}, ${s.dagen} werkdagen`)
+      .map((s, i) => `${i + 1}. vanaf ${datum.format(s.start)}, ${s.dagen} werkdagen`)
       .join('\n');
-    return `Voor de montage heb ik deze periodes vrij:\n${regels}\n\nWelke past u het beste?`;
+    return `Voor de montage zijn deze periodes vrij:\n${regels}\n\nWelke past u het beste? Een nummer sturen is genoeg.`;
   }
 
   const regels = slots
-    .map((s) => `- ${datum.format(s.start)} om ${tijd.format(s.start)}`)
+    .map((s, i) => `${i + 1}. ${datum.format(s.start)} om ${tijd.format(s.start)}`)
     .join('\n');
-  return `Ik kan op deze momenten langskomen om in te meten:\n${regels}\n\nWelke komt u het beste uit?`;
+  return `Inmeten kan op deze momenten:\n${regels}\n\nWelke komt u het beste uit? Een nummer sturen is genoeg.`;
 }

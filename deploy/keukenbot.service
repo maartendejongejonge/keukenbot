@@ -19,6 +19,8 @@ Type=simple
 User=keukenbot
 WorkingDirectory=/opt/keukenbot
 EnvironmentFile=/opt/keukenbot/.env
+; Werktijden (07:00–17:00) en data zijn Nederlandse tijd, ook als de server op UTC staat.
+Environment=TZ=Europe/Amsterdam
 ExecStart=/usr/bin/node dist/runner.js
 
 ; Baileys verliest regelmatig de verbinding; altijd terugkomen.
