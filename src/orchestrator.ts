@@ -1,8 +1,10 @@
 /**
  * De kern: één inkomend bericht erin, één besluit eruit.
  *
- * Er zijn precies vier uitkomsten. Alles wat er niet in past wordt een
- * overdracht — nooit een gok.
+ * De bot voert het gesprek zelf tot er een montagedag (of inmeting) is
+ * ingepland. Pas dan neemt de monteur het over. Tot die tijd krijgt de
+ * monteur hooguit een seintje (prijsbezwaar, klacht, twijfel), maar het
+ * gesprek blijft bij de bot. Afgesproken met Maarten op 02-10-2026.
  *
  * Toont de monteur prijzen (zie prijs.ts), dan rekent de orchestrator zelf de
  * prijsindicatie uit zodra de gegevens compleet zijn en zet hij die vóór het
@@ -10,10 +12,7 @@
  */
 
 import {
-  CONFIDENCE_DREMPEL,
   Kwalificatie,
-  MAX_VERVOLGVRAGEN,
-  MAX_VERVOLGVRAGEN_PRIJS,
   MonteurProfiel,
   OverdrachtReden,
   PrijsContext,
@@ -22,14 +21,25 @@ import {
   isCompleet,
   ontbrekendeVelden,
   systeemprompt,
+  veldUitleg,
+  volgendVeld,
+  CONFIDENCE_DREMPEL,
 } from './kwalificatie.js';
 import { Bezetting, PlannerProfiel, Slot, formuleerVoorstel, vervaltOp, vrijeSlots } from './planner.js';
-import { berekenPrijs, prijsOpbouw, prijsTekst, type PrijsProfiel, type Prijsindicatie, type Werk } from './prijs.js';
+import { berekenPrijs, prijsTekst, type PrijsProfiel, type Prijsindicatie, type Werk } from './prijs.js';
 
-export type Signaal = 'prijsbezwaar';
+/** Seintje aan de monteur. Het gesprek blijft bij de bot. */
+export type Signaal = 'prijsbezwaar' | 'prijsvraag' | 'klacht' | 'wil_monteur' | 'twijfel' | 'extra_werk';
 
 export type Besluit =
-  | { soort: 'antwoord'; tekst: string; kwalificatie: Kwalificatie; prijs?: Prijsindicatie; signaal?: Signaal }
+  | {
+      soort: 'antwoord';
+      tekst: string;
+      kwalificatie: Kwalificatie;
+      prijs?: Prijsindicatie;
+      signalen: Signaal[];
+      extraWerk?: string[];
+    }
   | { soort: 'afwijzing'; tekst: string; reden: string }
   | {
       soort: 'voorstel';
@@ -38,7 +48,10 @@ export type Besluit =
       vervalt_op: Date;
       kwalificatie: Kwalificatie;
       prijs?: Prijsindicatie;
+      signalen: Signaal[];
+      extraWerk?: string[];
     }
+  /** Alleen nog als de bot echt niet verder kan: geen vrije datum te vinden. */
   | { soort: 'overdracht'; reden: OverdrachtReden; samenvatting: string; concept?: string; kwalificatie?: Kwalificatie };
 
 export interface LeadContext {
@@ -54,8 +67,9 @@ interface ModelUitkomst {
   velden: Partial<Kwalificatie>;
   antwoord: string;
   confidence: number;
-  overdracht?: OverdrachtReden | null;
   signaal?: Signaal | null;
+  /** oud formaat; wordt omgezet naar een signaal */
+  overdracht?: string | null;
 }
 
 export interface Afhankelijkheden {
@@ -68,6 +82,8 @@ export interface Afhankelijkheden {
   /** Bestaande afspraken uit Google Agenda, inclusief postcode waar bekend. */
   bezetting(vanaf: Date, dagen: number): Promise<Bezetting[]>;
 }
+
+const SIGNALEN: Signaal[] = ['prijsbezwaar', 'prijsvraag', 'klacht', 'wil_monteur', 'twijfel', 'extra_werk'];
 
 export async function verwerkBericht(
   bericht: string,
@@ -87,39 +103,26 @@ export async function verwerkBericht(
     antwoordFormaat(prijzen, ontbrekendeVelden(voorlopig, prijzen));
 
   const uit = await deps.duidBericht(systeem, ctx.historie, bericht);
-
-  // 1. Het model geeft zelf aan dat dit niet voor de bot is.
-  if (uit.overdracht) {
-    return {
-      soort: 'overdracht',
-      reden: uit.overdracht,
-      samenvatting: vatSamen(ctx, bericht, uit.overdracht),
-      concept: uit.antwoord || undefined,
-      kwalificatie: samenvoegen(ctx.kwalificatie, uit.velden),
-    };
-  }
-
-  // 2. Te onzeker om zelf te antwoorden.
-  if (!(uit.confidence >= CONFIDENCE_DREMPEL)) {
-    return {
-      soort: 'overdracht',
-      reden: 'lage_confidence',
-      samenvatting: vatSamen(ctx, bericht, 'lage_confidence'),
-      concept: uit.antwoord || undefined,
-      kwalificatie: samenvoegen(ctx.kwalificatie, uit.velden),
-    };
-  }
-
   const kwalificatie = samenvoegen(ctx.kwalificatie, uit.velden);
 
-  // 3. Filter draait zodra er genoeg bekend is — niet pas aan het eind.
+  // Seintjes verzamelen. Het gesprek blijft hoe dan ook bij de bot.
+  const signalen = new Set<Signaal>();
+  if (uit.signaal && SIGNALEN.includes(uit.signaal)) signalen.add(uit.signaal);
+  if (uit.overdracht) signalen.add(uit.overdracht === 'klacht' || uit.overdracht === 'emotie' ? 'klacht' : 'twijfel');
+  if (!(uit.confidence >= CONFIDENCE_DREMPEL)) signalen.add('twijfel');
+
+  // Nooit een leeg bericht: vraag dan gewoon naar wat er nog ontbreekt.
+  const antwoord = uit.antwoord?.trim() || terugvalVraag(kwalificatie, prijzen);
+
+  // Filter draait zodra er genoeg bekend is — niet pas aan het eind.
   const oordeel = beoordeel(kwalificatie, profiel);
   if (!oordeel.past) {
     return { soort: 'afwijzing', tekst: oordeel.nettetekst, reden: oordeel.reden };
   }
 
-  // 4. Prijsindicatie, één keer per aanvraag, zodra alles bekend is.
+  // Prijsindicatie, één keer per aanvraag, zodra alles bekend is.
   let prijs: Prijsindicatie | undefined;
+  let extraWerk: string[] | undefined;
   if (prijsProfiel && kwalificatie.type_klus === 'montage' && !ctx.prijsGegeven) {
     const u = berekenPrijs(
       {
@@ -133,81 +136,48 @@ export async function verwerkBericht(
       prijsProfiel,
     );
 
-    if (u.soort === 'monteur') {
-      return {
-        soort: 'overdracht',
-        reden: 'prijsvraag',
-        samenvatting:
-          `Prijs niet automatisch: ${u.reden}.\n` +
-          (u.basis ? `Basis zonder dat werk:\n${prijsOpbouw(u.basis, prijsProfiel.uurtarief)}\n` : '') +
-          vatSamen({ ...ctx, kwalificatie }, bericht, 'prijsvraag'),
-        concept: uit.antwoord || undefined,
-        kwalificatie,
-      };
-    }
     if (u.soort === 'indicatie') prijs = u.indicatie;
-  }
-
-  const metPrijs = (tekst: string) => (prijs ? `${prijsTekst(prijs)}\n\n${tekst}`.trim() : tekst);
-
-  // 5. Nog niet compleet: doorvragen, tot de grens.
-  if (!isCompleet(kwalificatie, prijzen)) {
-    const max = prijzen && kwalificatie.type_klus === 'montage' ? MAX_VERVOLGVRAGEN_PRIJS : MAX_VERVOLGVRAGEN;
-    if (ctx.vervolgvragen + 1 > max) {
-      return {
-        soort: 'overdracht',
-        reden: 'buiten_regels',
-        samenvatting: vatSamen({ ...ctx, kwalificatie }, bericht, 'buiten_regels'),
-        kwalificatie,
-      };
+    if (u.soort === 'monteur' && u.basis) {
+      // Werk zonder uurnorm: prijs voor de montage geven, het extra werk
+      // komt er apart bij in de offerte. De bot gaat gewoon door.
+      prijs = u.basis;
+      extraWerk = (kwalificatie.werk?.overig ?? []).filter((o) => o.trim());
+      signalen.add('extra_werk');
     }
-    return {
-      soort: 'antwoord',
-      tekst: metPrijs(uit.antwoord),
-      kwalificatie,
-      prijs,
-      signaal: uit.signaal ?? undefined,
-    };
   }
 
-  // Prijsbezwaar na het voorstel: zelf onderbouwen, monteur krijgt een seintje.
-  if (uit.signaal === 'prijsbezwaar') {
-    return { soort: 'antwoord', tekst: uit.antwoord, kwalificatie, signaal: 'prijsbezwaar' };
+  const metPrijs = (tekst: string) => {
+    if (!prijs) return tekst;
+    const extra = extraWerk?.length
+      ? `\n\n${hoofdletter(extraWerk.join(', '))} komt daar nog bij. Dat rekent ${profiel.aanspreeknaam || 'de monteur'} apart uit en staat in de offerte.`
+      : '';
+    return `${prijsTekst(prijs)}${extra}\n\n${tekst}`.trim();
+  };
+
+  const sig = [...signalen];
+
+  // Nog niet compleet: doorvragen.
+  if (!isCompleet(kwalificatie, prijzen)) {
+    return { soort: 'antwoord', tekst: metPrijs(antwoord), kwalificatie, prijs, signalen: sig, extraWerk };
   }
 
-  // 6. Compleet en passend: agenda raadplegen.
-  const prijsFlow = prijzen && kwalificatie.type_klus === 'montage';
-  const soort: 'inmeting' | 'montage' = prijsFlow
-    ? kwalificatie.ingemeten === false ? 'inmeting' : 'montage'
-    : kwalificatie.keuken_geleverd === true ? 'montage' : 'inmeting';
+  // Een bezwaar of vraag na de prijs eerst beantwoorden, niet meteen data sturen.
+  if (signalen.has('prijsbezwaar') || signalen.has('klacht') || signalen.has('wil_monteur')) {
+    return { soort: 'antwoord', tekst: metPrijs(antwoord), kwalificatie, prijs, signalen: sig, extraWerk };
+  }
 
-  // De duur van de montage volgt uit de prijsberekening; de buffer zit in de dagen.
-  const dagenMax = prijs?.dagen_max ?? ctx.prijsGegeven?.dagen_max;
-  const planProfiel = dagenMax ? { ...profiel, montage_duur_dagdelen: dagenMax * 2 } : profiel;
-
-  // Niet plannen vóór de keuken er is: vroegst de dag na levering.
-  const nu = new Date();
-  const naLevering = kwalificatie.leverdatum ? new Date(`${kwalificatie.leverdatum}T00:00:00`) : null;
-  naLevering?.setDate(naLevering.getDate() + 1);
-  const vanaf = soort === 'montage' && naLevering && +naLevering > +nu ? naLevering : nu;
-
-  const bezet = await deps.bezetting(vanaf, 28);
-  const slots = vrijeSlots({
-    vanaf,
-    dagen: 28,
-    soort,
-    profiel: planProfiel,
-    bezet,
-    klantPc4: kwalificatie.pc4,
+  // Compleet en passend: agenda raadplegen.
+  const plan = await zoekMomenten(kwalificatie, profiel, deps, {
+    prijsFlow: prijzen && kwalificatie.type_klus === 'montage',
+    dagenMax: prijs?.dagen_max ?? ctx.prijsGegeven?.dagen_max,
   });
 
-  // Geen vrij slot is geen "het lukt niet" naar de klant toe — dat beslist de monteur.
-  if (slots.length === 0) {
+  if (plan.slots.length === 0) {
     return {
       soort: 'overdracht',
       reden: 'buiten_regels',
       samenvatting:
-        `Gekwalificeerde aanvraag, maar geen vrij ${soort}-slot binnen vier weken. ` +
+        `Klant is akkoord om in te plannen, maar er is geen vrij ${plan.soort}-moment binnen acht weken. ` +
         vatSamen({ ...ctx, kwalificatie }, bericht, 'buiten_regels'),
       concept: prijs ? prijsTekst(prijs) : undefined,
       kwalificatie,
@@ -216,15 +186,62 @@ export async function verwerkBericht(
 
   return {
     soort: 'voorstel',
-    tekst: metPrijs(formuleerVoorstel(slots)),
-    slots,
+    tekst: metPrijs(formuleerVoorstel(plan.slots)),
+    slots: plan.slots,
     vervalt_op: vervaltOp(),
     kwalificatie,
     prijs,
+    signalen: sig,
+    extraWerk,
   };
 }
 
+/**
+ * Vrije momenten zoeken: eerst vier weken vooruit, dan acht.
+ * `vanaf` overschrijft het begin (bijv. "geen van deze past, liever later").
+ */
+export async function zoekMomenten(
+  kwalificatie: Kwalificatie,
+  profiel: MonteurProfiel & PlannerProfiel,
+  deps: Pick<Afhankelijkheden, 'bezetting'>,
+  opties: { prijsFlow: boolean; dagenMax?: number; vanaf?: Date },
+): Promise<{ soort: 'inmeting' | 'montage'; slots: Slot[] }> {
+  const soort: 'inmeting' | 'montage' = opties.prijsFlow
+    ? kwalificatie.ingemeten === false ? 'inmeting' : 'montage'
+    : kwalificatie.keuken_geleverd === true ? 'montage' : 'inmeting';
+
+  // De duur van de montage volgt uit de prijsberekening; de buffer zit in de dagen.
+  const planProfiel = opties.dagenMax ? { ...profiel, montage_duur_dagdelen: opties.dagenMax * 2 } : profiel;
+
+  // Niet plannen vóór de keuken er is: vroegst de dag na levering.
+  const nu = new Date();
+  const naLevering = kwalificatie.leverdatum ? new Date(`${kwalificatie.leverdatum}T00:00:00`) : null;
+  naLevering?.setDate(naLevering.getDate() + 1);
+  let vanaf = soort === 'montage' && naLevering && +naLevering > +nu ? naLevering : nu;
+  if (opties.vanaf && +opties.vanaf > +vanaf) vanaf = opties.vanaf;
+
+  for (const dagen of [28, 56]) {
+    const bezet = await deps.bezetting(vanaf, dagen);
+    const slots = vrijeSlots({ vanaf, dagen, soort, profiel: planProfiel, bezet, klantPc4: kwalificatie.pc4 });
+    if (slots.length) return { soort, slots };
+  }
+  return { soort, slots: [] };
+}
+
 // ------------------------------------------------------------------ hulpjes
+
+function hoofdletter(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+function terugvalVraag(k: Kwalificatie, prijzen: boolean): string {
+  const v = volgendVeld({ type_klus: 'montage', ...k }, prijzen);
+  if (!v) return 'Dank u. Ik zoek een paar momenten voor u uit.';
+  if (v === 'werk') {
+    return 'Kunt u de onderdelenlijst of orderbevestiging van de keuken sturen, als foto of PDF? Dan kan ik u een prijs en een montagedatum geven.';
+  }
+  return `Kunt u mij nog laten weten: ${veldUitleg(v)}?`;
+}
 
 function schoon<T extends object>(v: Partial<T> | undefined): Partial<T> {
   const uit: Partial<T> = {};
@@ -243,11 +260,13 @@ export function samenvoegen(oud: Kwalificatie, nieuw: Partial<Kwalificatie> | un
   const uit: Kwalificatie = { ...oud, ...n };
   if (werk) uit.werk = werk;
   if (typeof uit.pc4 === 'string') uit.pc4 = Number(String(uit.pc4).slice(0, 4)) || undefined;
+  // "onbekend" = de klant weet het niet of de keuken staat er al: plan vanaf vandaag.
+  if (uit.leverdatum === 'onbekend') uit.leverdatum = new Date().toISOString().slice(0, 10);
   if (uit.leverdatum && !/^\d{4}-\d{2}-\d{2}$/.test(uit.leverdatum)) delete uit.leverdatum;
   return uit;
 }
 
-function vatSamen(ctx: LeadContext, bericht: string, reden: OverdrachtReden): string {
+export function vatSamen(ctx: LeadContext, bericht: string, reden: string): string {
   const k = ctx.kwalificatie;
   const w = k.werk;
   const kasten = w ? (w.onderkasten ?? 0) + (w.hangkasten ?? 0) + (w.hoge_kasten ?? 0) : 0;

@@ -17,7 +17,9 @@ export interface KeuzeUitkomst {
   geen_past: boolean;
   antwoord: string;
   confidence: number;
-  overdracht?: string | null;
+  /** als de klant zegt wanneer het wél kan */
+  vanaf?: Date;
+  signaal?: string | null;
 }
 
 const RANGTELWOORDEN: Record<string, number> = {
@@ -67,14 +69,17 @@ Bepaal wat de klant met zijn bericht bedoelt.
 - Kiest hij duidelijk één van deze momenten (ook in eigen woorden, zoals
   "dinsdag is goed" of "de laatste"): zet "keuze" op het nummer.
 - Past geen van deze momenten, of wil hij een andere datum: "geen_past": true.
-  Zeg zelf geen andere datum toe.
+  Noemt hij vanaf wanneer het wel kan, zet dat in "vanaf" (YYYY-MM-DD).
+  Zeg zelf geen datum toe; het systeem stuurt nieuwe momenten. Zet in
+  "antwoord" dan alleen een korte inleiding ("Dan stel ik andere momenten voor.").
 - Vraagt hij iets anders: beantwoord dat kort volgens de regels en sluit af
   met de vraag welk moment past. "keuze" blijft null.
 - Twijfel je welk moment hij bedoelt: "keuze" null en vraag het kort na.
 
 Antwoord uitsluitend met JSON, zonder toelichting of code-fences:
-{"keuze":null,"geen_past":false,"antwoord":"","confidence":0.0,"overdracht":null}
-"overdracht" = null, of "klacht", "emotie", "levertijd", "prijsvraag" of "buiten_regels".`;
+{"keuze":null,"geen_past":false,"vanaf":null,"antwoord":"","confidence":0.0,"signaal":null}
+"signaal" = null, of "prijsbezwaar", "klacht", "wil_monteur" of "twijfel"
+  (alleen een seintje aan de monteur; jij blijft het gesprek voeren).`;
 }
 
 export function leesKeuze(ruw: any, aantal: number): KeuzeUitkomst {
@@ -84,6 +89,7 @@ export function leesKeuze(ruw: any, aantal: number): KeuzeUitkomst {
     geen_past: ruw?.geen_past === true,
     antwoord: typeof ruw?.antwoord === 'string' ? ruw.antwoord : '',
     confidence: Number(ruw?.confidence) || 0,
-    overdracht: ruw?.overdracht ?? null,
+    vanaf: /^\d{4}-\d{2}-\d{2}$/.test(String(ruw?.vanaf)) ? new Date(`${ruw.vanaf}T00:00:00`) : undefined,
+    signaal: ruw?.signaal ?? null,
   };
 }

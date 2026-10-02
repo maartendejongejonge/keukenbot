@@ -44,13 +44,15 @@ Vanaf dat moment:
 3. Past de klus niet in het werkgebied, dan volgt een nette afwijzing.
 4. Past hij wel, dan kijkt de bot in de agenda en stelt drie momenten voor.
 5. De klant kiest er één, en de afspraak staat in de agenda van de monteur.
-6. Twijfelt de bot ergens over, dan zegt hij niets en krijgt de monteur een
-   seintje met een voorstel voor een antwoord.
+6. Pas dan neemt de monteur het gesprek over. Daarvoor krijgt hij hooguit een
+   seintje (prijsbezwaar, klacht, twijfel), maar de bot praat gewoon verder.
 
-Dat laatste is de kern van het ontwerp: **de bot mag informeren, kwalificeren en
-plannen, maar nooit iets toezeggen.** Alles waar twijfel in zit gaat naar de
-monteur. Liever tien keer te veel overgedragen dan één klant die een verkeerde
-belofte krijgt.
+De kern van het ontwerp (besloten 02-10-2026): **de bot verkoopt de klus, de
+monteur hoeft niet te verkopen.** De bot draagt pas over als er een datum is
+ingepland. Alleen als er acht weken lang geen vrije datum is, of als het
+wegschrijven in de agenda mislukt, gaat het eerder naar de monteur. Wat de bot
+nooit doet: zelf een datum toezeggen die niet uit de agenda komt, of een bedrag
+noemen dat niet uit de prijsberekening komt.
 
 **Prijzen** noemt de bot standaard niet. Uitzondering: een monteur die in zijn
 profiel `prijzen_tonen` aanzet en zijn eigen `uurtarief` en `uurnormen` invult.
@@ -70,15 +72,21 @@ aanleggen, slopen) gaat altijd naar de monteur.
   het profiel (`advies`), net als wat de monteur niet doet (`weigert`).
 - Na de prijs: montagedag voorstellen, niet "accepteert u de offerte?".
   Inmeten alleen als dat nog niet gebeurd is.
-- Prijsbezwaar: niet in discussie, onderbouwen, verwijzen naar de monteur
-  (`aanspreeknaam`). Geen korting. De monteur krijgt een seintje.
+- Prijsbezwaar: niet in discussie, onderbouwen, laten doorschemeren dat de
+  klant het bedrag met de monteur (`aanspreeknaam`) kan bespreken. Geen korting.
+  De monteur krijgt een seintje, de bot praat verder.
+- Werk zonder uurnorm (leidingwerk, groep aanleggen): de bot geeft de prijs
+  voor de montage en zegt dat dat werk er apart bij komt in de offerte.
+- Vraagt de klant naar de monteur: die is aan het werk en neemt contact op
+  zodra de datum staat. Geen telefoonnummer.
+- Past geen van de voorgestelde data: de bot zoekt zelf nieuwe, later.
 - Meerdere berichten of bestanden achter elkaar worden gebundeld en in één
   keer beantwoord (`BUNDEL_SECONDEN`, standaard 15).
 - De voorgestelde momenten zijn genummerd. Kiest de klant er één (nummer of
   eigen woorden), dan gaat de afspraak in Google Agenda, vervallen de andere
   reserveringen en krijgt de monteur een bevestiging. Past geen moment, dan
   gaat het gesprek naar de monteur.
-- Na een overdracht of een ingeplande afspraak antwoordt de bot die klant niet
+- Na een ingeplande afspraak (of de zeldzame overdracht) antwoordt de bot die klant niet
   meer; nieuwe berichten gaan door naar de monteur (14 dagen na overdracht,
   60 dagen na inplannen). De monteur antwoordt zelf vanaf het botnummer.
 
