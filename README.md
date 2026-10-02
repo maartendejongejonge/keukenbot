@@ -48,9 +48,32 @@ Vanaf dat moment:
    seintje met een voorstel voor een antwoord.
 
 Dat laatste is de kern van het ontwerp: **de bot mag informeren, kwalificeren en
-plannen, maar nooit een prijs noemen of iets toezeggen.** Alles waar twijfel in
-zit gaat naar de monteur. Liever tien keer te veel overgedragen dan één klant
-die een verkeerde belofte krijgt.
+plannen, maar nooit iets toezeggen.** Alles waar twijfel in zit gaat naar de
+monteur. Liever tien keer te veel overgedragen dan één klant die een verkeerde
+belofte krijgt.
+
+**Prijzen** noemt de bot standaard niet. Uitzondering: een monteur die in zijn
+profiel `prijzen_tonen` aanzet en zijn eigen `uurtarief` en `uurnormen` invult.
+Dan rekent `src/prijs.ts` bij een keukenmontage een bandbreedte en doorlooptijd
+uit (nooit uren of uurtarief naar de klant). Sinds 02-10-2026 staat dat alleen
+aan voor Rotterdam Keukenmontage. Werk zonder uurnorm (leidingwerk, groep
+aanleggen, slopen) gaat altijd naar de monteur.
+
+## Gespreksregels (afgesproken 02-10-2026)
+
+- Eerst vragen om de onderdelenlijst en plattegrond (foto of PDF); die worden
+  automatisch uitgelezen (`src/media.ts`). Daarna alleen vragen wat ontbreekt:
+  postcode, verdieping en lift, wie het werkblad plaatst, leverdatum.
+- Zo kort mogelijk. Geen complimenten. Eerlijk een AI, niet menselijk doen.
+  Korte bevestigingsvragen mogen.
+- Advies (elektricien uit eigen team, extra mankracht bij zwaar blad) komt uit
+  het profiel (`advies`), net als wat de monteur niet doet (`weigert`).
+- Na de prijs: montagedag voorstellen, niet "accepteert u de offerte?".
+  Inmeten alleen als dat nog niet gebeurd is.
+- Prijsbezwaar: niet in discussie, onderbouwen, verwijzen naar de monteur
+  (`aanspreeknaam`). Geen korting. De monteur krijgt een seintje.
+- Meerdere berichten of bestanden achter elkaar worden gebundeld en in één
+  keer beantwoord (`BUNDEL_SECONDEN`, standaard 15).
 
 Offertes, meerwerk en facturen komen later. Eerst moet dit ene ding goed werken.
 
@@ -71,6 +94,8 @@ besluitvorming. Wat nog ontbreekt is het proces dat alles aan elkaar knoopt.
 | VPS | herinstalleerd en ingericht op 1 okt 2026 |
 | De runner die alles start | af, nog niet live gezet |
 | Melding aan de monteur bij overdracht | af (via WhatsApp, in de runner) |
+| Foto's en PDF's uitlezen | af (overgenomen uit Sanne, 02-10-2026) |
+| Prijsindicatie per monteur | af, alleen aan voor Rotterdam Keukenmontage |
 | Webinterface voor monteurs | nog te doen |
 
 ## De bestanden
@@ -78,7 +103,10 @@ besluitvorming. Wat nog ontbreekt is het proces dat alles aan elkaar knoopt.
 ```
 src/runner.ts                       het proces op de VPS: knoopt alles aan elkaar
 src/check.ts                        controleert .env en alle koppelingen (npm run check)
-src/kwalificatie.ts                 de zeven vragen, de harde grenzen, de toon
+src/kwalificatie.ts                 de vragen, de harde grenzen, de gespreksregels (systeemprompt)
+src/prijs.ts                        prijsindicatie uit uurnormen (alleen als de monteur dat aanzet)
+src/prijs.test.ts                   rekentest op de referentiekeukens (npm run test:prijs)
+src/media.ts                        foto's en PDF's van klanten laten uitlezen
 src/planner.ts                      werktijden, reistijd, buffer, vrije momenten
 src/reiskosten.ts                   afstand, rijtijd en reiskosten per postcode
 src/agenda.ts                       Google Agenda lezen en schrijven
@@ -91,6 +119,7 @@ deploy/installeer-app.sh            code ophalen, bouwen, service installeren (o
 deploy/env.voorbeeld                sjabloon voor /opt/keukenbot/.env
 deploy/keukenbot.service            zorgt dat de bot blijft draaien
 api/whatsapp.ts                     voor later, bij de officiële WhatsApp API
+archief/sanne/                      de opgeheven Supabase-bot, alleen ter naslag
 ```
 
 ## Op de server zetten of bijwerken

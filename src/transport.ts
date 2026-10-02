@@ -17,8 +17,17 @@
 export interface InkomendBericht {
   kanaalSleutel: string;   // phone_number_id (Cloud API) of eigen nummer (Baileys)
   vanNummer: string;
-  tekst: string;
+  tekst: string;           // bij media: het bijschrift (kan leeg zijn)
   ontvangenOp: Date;
+  media?: InkomendMedia;
+}
+
+/** Een foto of bestand van de klant. Downloaden gebeurt pas als het nodig is. */
+export interface InkomendMedia {
+  soort: 'afbeelding' | 'document' | 'anders';
+  mime: string;
+  bestandsnaam?: string;
+  download(): Promise<Buffer>;
 }
 
 export interface Transport {
@@ -51,8 +60,13 @@ export function baileysTransport(opts: {
     naam: 'baileys',
 
     async start(onBericht) {
-      const { default: makeWASocket, useMultiFileAuthState, DisconnectReason } =
-        await import('@whiskeysockets/baileys');
+      const {
+        default: makeWASocket,
+        useMultiFileAuthState,
+        DisconnectReason,
+        downloadMediaMessage,
+        normalizeMessageContent,
+      } = await import('@whiskeysockets/baileys');
 
       const { state, saveCreds } = await useMultiFileAuthState(opts.authDir);
       sock = makeWASocket({ auth: state });
@@ -97,9 +111,37 @@ export function baileysTransport(opts: {
           if (jid === 'status@broadcast') continue;     // geen statusupdates
           if (jid.endsWith('@newsletter')) continue;    // geen kanalen
 
-          const tekst =
-            m.message?.conversation ?? m.message?.extendedTextMessage?.text ?? '';
-          if (!tekst.trim()) continue;
+          // Tijdelijke berichten, "eenmalig bekijken" en documenten met
+          // bijschrift zitten in een omhulsel; normalize haalt dat eraf.
+          const inhoud: any = normalizeMessageContent(m.message) ?? {};
+          const beeld = inhoud.imageMessage;
+          const doc = inhoud.documentMessage;
+          const overigMedia =
+            inhoud.videoMessage ?? inhoud.audioMessage ?? inhoud.stickerMessage;
+
+          const tekst: string =
+            inhoud.conversation ??
+            inhoud.extendedTextMessage?.text ??
+            beeld?.caption ??
+            doc?.caption ??
+            '';
+
+          let media: InkomendMedia | undefined;
+          if (beeld || doc || overigMedia) {
+            const bron = beeld ?? doc ?? overigMedia;
+            media = {
+              soort: beeld ? 'afbeelding' : doc ? 'document' : 'anders',
+              mime: String(bron.mimetype ?? '').split(';')[0].trim().toLowerCase(),
+              bestandsnaam: doc?.fileName ?? undefined,
+              download: () =>
+                downloadMediaMessage(m, 'buffer', {}, {
+                  logger: sock.logger,
+                  reuploadRequest: sock.updateMediaMessage,
+                }) as Promise<Buffer>,
+            };
+          }
+
+          if (!tekst.trim() && !media) continue;
 
           try {
             await onBericht({
@@ -108,6 +150,7 @@ export function baileysTransport(opts: {
               // plaats van het nummer; senderPn bevat dan het echte nummer.
               vanNummer: (m.key.senderPn ?? jid).replace(/@s\.whatsapp\.net$/, '').replace(/:\d+$/, ''),
               tekst,
+              media,
               ontvangenOp: new Date((Number(m.messageTimestamp) || 0) * 1000),
             });
           } catch (e) {
