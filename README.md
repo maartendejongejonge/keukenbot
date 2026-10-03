@@ -90,6 +90,41 @@ aanleggen, slopen) gaat altijd naar de monteur.
   meer; nieuwe berichten gaan door naar de monteur (14 dagen na overdracht,
   60 dagen na inplannen). De monteur antwoordt zelf vanaf het botnummer.
 
+- Antwoorden in de taal van de klant (Nederlands in de u-vorm, of Engels).
+  Geen dagdeelgroet: de bot weet niet hoe laat het bij de klant is.
+- Komt de keuken pas over weken of maanden: leverdatum vragen en nu al
+  plannen, nooit "laat maar weten als hij er is".
+- Een bedrijf dat structureel wil samenwerken (keukenhandel, aannemer):
+  geen toezeggingen, seintje `wil_monteur`.
+- Lukt het model niet (geen bruikbaar antwoord), dan stuurt de bot nooit
+  twee keer dezelfde terugvalvraag maar een neutraal bericht en een seintje.
+
+## Klusjes buiten de keuken (besloten 03-10-2026)
+
+Lampen, gordijnrails, schilderijen en ander klein werk: zonder instelling
+wijst de bot dit netjes af. Een monteur die `klusjes` in zijn profiel zet,
+neemt ze alleen tegen een hoog tarief aan. Rotterdam Keukenmontage: € 95 per
+uur, minimaal 2 uur, alleen binnen Rotterdam (`werkgebied_pc4`). De klant
+hoort nooit het uurtarief, alleen dat een bezoek € 190 kost en dat er bij
+meer werk naar verhouding tijd bijkomt. De bot vraagt wat, waar en wanneer,
+schat de duur in voor de planning (minimaal 2, maximaal 8 uur) en stelt drie
+momenten voor. In de agenda heet zo'n afspraak "Klusje".
+
+## Gesprekstest
+
+`test/voorbeeldgesprekken.json` bevat 11 echte, geanonimiseerde
+klantgesprekken van Maarten. De test speelt de klantberichten af tegen de
+echte prompt en het echte profiel, met een lege agenda, zonder iets te
+versturen of op te slaan:
+
+```bash
+cd /opt/keukenbot && sudo -u keukenbot npm run test:gesprekken
+```
+
+De uitslag staat daarna in `test/uitslag.md`: per beurt wat de bot zegt,
+wat Maarten destijds zei, en waarop je het antwoord beoordeelt. Draai hem na
+elke wijziging aan de prompt.
+
 Offertes, meerwerk en facturen komen later. Eerst moet dit ene ding goed werken.
 
 ## Waar we nu staan
@@ -113,6 +148,8 @@ besluitvorming. Wat nog ontbreekt is het proces dat alles aan elkaar knoopt.
 | Prijsindicatie per monteur | af, alleen aan voor Rotterdam Keukenmontage |
 | Klant kiest een moment → Google Agenda | af (02-10-2026) |
 | Bot zwijgt na overdracht of inplannen | af (02-10-2026) |
+| Klusjes tegen hoog tarief | af (03-10-2026), alleen aan voor Rotterdam Keukenmontage |
+| Gesprekstest met echte gesprekken | af (03-10-2026) |
 | Webinterface voor monteurs | nog te doen |
 
 ## De bestanden
@@ -121,6 +158,9 @@ besluitvorming. Wat nog ontbreekt is het proces dat alles aan elkaar knoopt.
 src/runner.ts                       het proces op de VPS: knoopt alles aan elkaar
 src/check.ts                        controleert .env en alle koppelingen (npm run check)
 src/kwalificatie.ts                 de vragen, de harde grenzen, de gespreksregels (systeemprompt)
+src/model.ts                        de aanroep van Claude (met één herkansing)
+src/gesprekken.test.ts              echte gesprekken afspelen tegen de bot (npm run test:gesprekken)
+test/voorbeeldgesprekken.json       11 geanonimiseerde klantgesprekken
 src/prijs.ts                        prijsindicatie uit uurnormen (alleen als de monteur dat aanzet)
 src/prijs.test.ts                   rekentest op de referentiekeukens (npm run test:prijs)
 src/media.ts                        foto's en PDF's van klanten laten uitlezen

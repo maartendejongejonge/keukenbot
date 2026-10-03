@@ -6,6 +6,7 @@
  * Let op het verschil tussen de twee soorten:
  *   inmeting  — een gat van anderhalf uur binnen één werkdag
  *   montage   — een aaneengesloten reeks hele werkdagen (standaard 3)
+ *   klusje    — zoals een inmeting, maar zo lang als het klusje duurt
  * Die twee vragen een compleet andere zoektocht.
  */
 
@@ -31,9 +32,11 @@ export interface PlannerProfiel {
 export interface Slot {
   start: Date;
   eind: Date;
-  soort: 'inmeting' | 'montage';
+  soort: SlotSoort;
   dagen?: number;             // alleen bij montage: aantal werkdagen
 }
+
+export type SlotSoort = 'inmeting' | 'montage' | 'klusje';
 
 const MS_MIN = 60_000;
 const DAGDEEL_MIN = 4 * 60;
@@ -67,8 +70,10 @@ export function reistijdMin(vanPc4?: number, naarPc4?: number): number {
 interface Zoekopdracht {
   vanaf: Date;
   dagen: number;
-  soort: 'inmeting' | 'montage';
+  soort: SlotSoort;
   profiel: PlannerProfiel;
+  /** alleen bij klusje: hoe lang het bezoek duurt */
+  duurMin?: number;
   bezet: Bezetting[];
   klantPc4?: number;
   aantal?: number;
@@ -106,7 +111,7 @@ function pastBinnenBuffer(
 function inmetingSlots(opts: Zoekopdracht): Slot[] {
   const { vanaf, dagen, profiel, bezet, klantPc4 } = opts;
   const aantal = opts.aantal ?? 3;
-  const duurMin = profiel.inmeting_duur_min;
+  const duurMin = opts.soort === 'klusje' && opts.duurMin ? opts.duurMin : profiel.inmeting_duur_min;
   const perWeek = weekbezetting(bezet);
 
   const gevonden: Slot[] = [];
@@ -144,7 +149,7 @@ function inmetingSlots(opts: Zoekopdracht): Slot[] {
       const eind = new Date(+start + duurMin * MS_MIN);
 
       if (eind <= new Date(+grens - voorVolgende * MS_MIN)) {
-        gevonden.push({ start, eind, soort: 'inmeting' });
+        gevonden.push({ start, eind, soort: opts.soort === 'klusje' ? 'klusje' : 'inmeting' });
         // Eén voorstel per dag: drie opties op drie dagen leest prettiger
         // dan drie opties op één ochtend.
         break;
@@ -281,5 +286,8 @@ export function formuleerVoorstel(slots: Slot[]): string {
   const regels = slots
     .map((s, i) => `${i + 1}. ${datum.format(s.start)} om ${tijd.format(s.start)}`)
     .join('\n');
+  if (slots[0].soort === 'klusje') {
+    return `Langskomen kan op deze momenten:\n${regels}\n\nWelke komt u het beste uit? Een nummer sturen is genoeg.`;
+  }
   return `Inmeten kan op deze momenten:\n${regels}\n\nWelke komt u het beste uit? Een nummer sturen is genoeg.`;
 }

@@ -6,7 +6,26 @@
 
 import type { Werk } from './prijs.js';
 
-export type TypeKlus = 'montage' | 'ombouw' | 'losse_kast' | 'reparatie';
+export type TypeKlus = 'montage' | 'ombouw' | 'losse_kast' | 'reparatie' | 'klusje';
+
+/**
+ * Klusjes buiten de keuken (lampen, gordijnrails, schilderijen, planken).
+ * Een monteur die dit aanzet, neemt ze alleen tegen een duidelijk hoger
+ * tarief. De klant hoort nooit het uurtarief, alleen het bedrag voor een
+ * bezoek (minimum_uren × uurtarief). Zonder deze instelling wijst de bot
+ * klusjes netjes af. Afgesproken met Maarten op 03-10-2026.
+ */
+export interface KlusjesInstelling {
+  uurtarief: number;
+  minimum_uren: number;
+  incl_btw?: boolean;   // standaard true: bedragen voor particulieren
+  /** Alleen in deze postcodes (pc4). Leeg of weg = overal binnen het werkgebied. */
+  werkgebied_pc4?: number[];
+}
+
+export function klusjesMinimum(k: KlusjesInstelling): number {
+  return Math.round(k.uurtarief * k.minimum_uren);
+}
 
 export interface Kwalificatie {
   pc4?: number;
@@ -26,6 +45,9 @@ export interface Kwalificatie {
   ingemeten?: boolean;
   zakelijk?: boolean;
   klant_naam?: string;
+  // Alleen bij type_klus 'klusje':
+  klusjes?: string;            // wat er moet gebeuren, in de woorden van de klant
+  klusje_uren?: number;        // inschatting voor de planning, nooit naar de klant
 }
 
 export interface MonteurProfiel {
@@ -38,6 +60,7 @@ export interface MonteurProfiel {
   aanspreeknaam?: string | null;
   advies?: string[] | null;
   bedrijfsnaam?: string | null;
+  klusjes?: KlusjesInstelling | null;
 }
 
 /** Wat de prompt over de prijs moet weten. null = deze monteur toont geen prijzen. */
@@ -77,7 +100,11 @@ export const VELD_VOLGORDE_PRIJS: (keyof Kwalificatie)[] = [
 /** Bij prijzen + montage is er meer uit te vragen, en telt het prijsbericht mee. */
 export const MAX_VERVOLGVRAGEN_PRIJS = 7;
 
+/** Klusjes: waar, wat, wanneer. Meer is niet nodig om langs te komen. */
+export const VELD_VOLGORDE_KLUSJE: (keyof Kwalificatie)[] = ['pc4', 'klusjes', 'gewenste_periode'];
+
 export function volgorde(k: Kwalificatie, prijzen: boolean): (keyof Kwalificatie)[] {
+  if (k.type_klus === 'klusje') return VELD_VOLGORDE_KLUSJE;
   return prijzen && k.type_klus === 'montage' ? VELD_VOLGORDE_PRIJS : VELD_VOLGORDE;
 }
 
@@ -124,6 +151,29 @@ export function beoordeel(k: Kwalificatie, p: MonteurProfiel): Oordeel {
     };
   }
 
+  if (k.type_klus === 'klusje' && !klusjesAan(p)) {
+    return {
+      past: false,
+      reden: 'klus_niet_aangenomen',
+      nettetekst:
+        'Dit soort klussen worden helaas niet gedaan; het bedrijf richt zich op keukens. ' +
+        'Bedankt voor uw aanvraag en succes met het vinden van iemand.',
+    };
+  }
+
+  if (
+    k.type_klus === 'klusje' && k.pc4 !== undefined && klusjesAan(p) &&
+    (p.klusjes.werkgebied_pc4?.length ?? 0) > 0 && !p.klusjes.werkgebied_pc4!.includes(k.pc4)
+  ) {
+    return {
+      past: false,
+      reden: 'klusje_buiten_gebied',
+      nettetekst:
+        'Voor kleine klussen komen we alleen in de directe omgeving, en dit adres valt daarbuiten. ' +
+        'Voor keukenwerk komen we wel verder. Bedankt voor uw aanvraag.',
+    };
+  }
+
   if (k.type_klus && p.weigert.includes(k.type_klus)) {
     return {
       past: false,
@@ -135,6 +185,11 @@ export function beoordeel(k: Kwalificatie, p: MonteurProfiel): Oordeel {
   }
 
   return { past: true };
+}
+
+export function klusjesAan(p: Pick<MonteurProfiel, 'klusjes'>): p is { klusjes: KlusjesInstelling } {
+  const k = p.klusjes;
+  return Boolean(k && Number(k.uurtarief) > 0 && Number(k.minimum_uren) > 0);
 }
 
 // ------------------------------------------------------- de harde grenzen
@@ -172,6 +227,7 @@ const VELD_UITLEG: Partial<Record<keyof Kwalificatie, string>> = {
   lift: 'of er een lift is',
   werkblad_door: 'wie het werkblad plaatst (wij of de steenhouwer)',
   leverdatum: 'wanneer de keuken geleverd wordt',
+  klusjes: 'wat er precies moet gebeuren (een foto helpt)',
 };
 
 export function veldUitleg(v: keyof Kwalificatie): string {
@@ -191,7 +247,7 @@ export function systeemprompt(p: MonteurProfiel, prijs: PrijsContext | null = nu
   const prijsBlok = prijs
     ? `PRIJS
 - Noem nooit uren of een uurtarief, en zelf geen bedrag dat hieronder niet
-  als "al gegeven" staat. De prijsindicatie wordt
+  als "al gegeven" staat.${klusjesAan(p) ? ' (Uitzondering: het vaste bezoekbedrag bij klusjes.)' : ''} De prijsindicatie wordt
   automatisch berekend en door het systeem aan je bericht toegevoegd zodra
   de onderdelenlijst, postcode, verdieping en werkbladplaatsing bekend zijn.
 - Vraagt de klant eerder naar de prijs: zeg dat je een indicatie geeft
@@ -216,9 +272,32 @@ accepteert. De keuken is meestal al ingemeten en het voorwerk gedaan door
 aannemer, loodgieter, elektricien en keukenontwerper. Inmeten bied je alleen
 aan als dat nog niet is gebeurd (zet dan "ingemeten": false).`
     : `PRIJS
-- Noem nooit een prijs, tarief, uurloon of indicatie, ook niet bij benadering.
+- Noem nooit een prijs, tarief, uurloon of indicatie, ook niet bij benadering.${klusjesAan(p) ? ' (Uitzondering: het vaste bezoekbedrag bij klusjes.)' : ''}
   Vraagt de klant ernaar: zeg dat ${naam} de prijs in de offerte zet, en ga
   door met plannen. Zet "signaal": "prijsvraag".`;
+
+  const klusBlok = klusjesAan(p)
+    ? `
+KLUSJES BUITEN DE KEUKEN
+Kleine klussen in huis (lampen, gordijnrails, schilderijen, planken,
+kastjes ophangen) neemt ${naam} ook aan. Zet dan "type_klus": "klusje".
+- Vraag wat er precies moet gebeuren, waar (postcode) en wanneer. Foto's
+  helpen. Meer hoef je niet te weten.
+- Prijs: een bezoek kost € ${klusjesMinimum(p.klusjes)} ${p.klusjes.incl_btw === false ? 'exclusief' : 'inclusief'} btw. Daarmee is
+  ${p.klusjes.minimum_uren} uur werk gedekt; duurt het langer, dan komt de extra tijd er naar
+  verhouding bij. Noem dit bedrag één keer, zodra je weet wat de klus is.
+  Noem nooit een uurtarief en geen ander bedrag.
+- Vindt de klant het te duur: geen korting, niet onderhandelen. Zeg dat het
+  een vast minimum per bezoek is (voorrijden, gereedschap, materiaal zoals
+  pluggen en schroeven) en zet "signaal": "prijsbezwaar".
+- Schat in hoeveel uur het werk is en zet dat in "klusje_uren" (alleen voor
+  de planning, nooit aan de klant noemen).
+`
+    : `
+KLUSJES BUITEN DE KEUKEN
+Lampen ophangen, gordijnrails en ander klein werk buiten de keuken doet
+${naam} niet. Zet "type_klus": "klusje"; het systeem stuurt een nette afwijzing.
+`;
 
   const bedrijf = p.bedrijfsnaam?.trim();
   return `Je bent de digitale assistent van ${bedrijf || 'een zelfstandige keukenmonteur'}${p.aanspreeknaam ? ` (eigenaar en monteur: ${naam})` : ''}.
@@ -238,12 +317,24 @@ volgende stap.
 - Vraagt de klant naar ${naam} of naar een mens: ${naam} is aan het werk; jij
   regelt de prijs en de planning, en zodra de datum staat neemt ${naam} zelf
   contact op. Geef geen telefoonnummer. Zet "signaal": "wil_monteur".
+- Zegt de klant dat de keuken pas later komt (over weken of maanden): vraag
+  de leverdatum en plan nu al. Zeg nooit "laat maar weten als hij er is";
+  dan is de klant weg.
+- Is het geen particulier maar een bedrijf dat structureel wil samenwerken
+  (keukenhandel, aannemer, partner, doorverwijzer): zeg dat ${naam} daar
+  zelf contact over opneemt, en zet "signaal": "wil_monteur". Doe geen
+  toezeggingen over prijzen, kortingen of beschikbaarheid.
+- Noemt de klant een budget dat lager is dan de prijs: zie PRIJS, dat is een
+  prijsbezwaar.
 - Stuurt de klant iets onbruikbaars (een foto zonder keukeninformatie,
   onzin): zeg kort wat je nodig hebt en vraag het opnieuw.
 
 TOON
-${p.toon}. Nederlands, u-vorm. Zo kort mogelijk: de klant wil kort met een
+${p.toon}. Antwoord in de taal van de klant: Nederlands in de u-vorm,
+Engels als de klant Engels schrijft. Zo kort mogelijk: de klant wil kort met een
 AI praten. Meestal één tot drie zinnen. Geen uitroeptekens, geen emoji.
+- Geen dagdeelgroet (goedemorgen, goedemiddag): je weet niet hoe laat het
+  is. "Goedendag" of "Hallo" volstaat, en alleen in je eerste bericht.
 - Geen complimenten ("mooie keuze", "prachtige keuken"). Hooguit een
   zakelijke bevestiging ("Duidelijk.", "Ontvangen.").
 - De naam van de klant gebruiken mag, maar blijf zakelijk.
@@ -264,7 +355,10 @@ GEGEVENS OPHALEN
 - Heeft de klant geen lijst: vraag kort het aantal kasten en of het een
   bouwpakket is.
 - Daarna vraag je alleen wat nog ontbreekt.
-${advies.length ? `
+- Bij een reparatie of aanpassing aan een bestaande keuken (spoelbak, blad,
+  fronten, scharnieren): vraag eerst een foto van het probleem en de maten
+  die ertoe doen, zodat ${naam} in één bezoek alles kan doen.
+${klusBlok}${advies.length ? `
 ADVIES (alleen meegeven als het past, niet ongevraagd in elk bericht)
 ${advies.map((a) => `- ${a}`).join('\n')}
 ` : ''}${weigert.length ? `
@@ -292,7 +386,7 @@ export function antwoordFormaat(prijzen: boolean, ontbrekend: (keyof Kwalificati
   const velden = prijzen
     ? `"velden" kan bevatten (alleen wat de klant echt gezegd of gestuurd heeft):
   pc4 (getal, vier cijfers), plaats, klant_naam,
-  type_klus ("montage" | "ombouw" | "losse_kast" | "reparatie"),
+  type_klus ("montage" | "ombouw" | "losse_kast" | "reparatie" | "klusje"),
   leverancier, verdieping (getal, 0 = begane grond), lift (true/false),
   leverdatum ("YYYY-MM-DD"; "onbekend" als de klant het niet weet of de
     keuken er al staat),
@@ -310,14 +404,18 @@ export function antwoordFormaat(prijzen: boolean, ontbrekend: (keyof Kwalificati
   }`
     : `"velden" kan bevatten (alleen wat de klant echt gezegd heeft):
   pc4 (getal, vier cijfers), plaats,
-  type_klus ("montage" | "ombouw" | "losse_kast" | "reparatie"),
+  type_klus ("montage" | "ombouw" | "losse_kast" | "reparatie" | "klusje"),
   keuken_geleverd (true/false), leverancier, omvang,
   installatiewerk (lijst: "water", "afvoer", "elektra"), gewenste_periode`;
 
   const nog = ontbrekend.map(veldUitleg);
+  const klus = `
+Bij een klusje buiten de keuken ook: klusjes (tekst: wat er moet gebeuren),
+  klusje_uren (getal: jouw inschatting voor de planning).`;
+
   return `Antwoord uitsluitend met JSON, zonder toelichting of code-fences:
 {"velden":{},"antwoord":"","confidence":0.0,"signaal":null}
-${velden}
+${velden}${klus}
 "confidence" = hoe zeker je bent dat je antwoord klopt en past (0–1).
 "antwoord" is altijd een bericht aan de klant, nooit leeg.
 "signaal" = null, of een van: "prijsbezwaar", "prijsvraag", "klacht",

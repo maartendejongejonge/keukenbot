@@ -24,8 +24,9 @@ import {
   veldUitleg,
   volgendVeld,
   CONFIDENCE_DREMPEL,
+  klusjesAan,
 } from './kwalificatie.js';
-import { Bezetting, PlannerProfiel, Slot, formuleerVoorstel, vervaltOp, vrijeSlots } from './planner.js';
+import { Bezetting, PlannerProfiel, Slot, SlotSoort, formuleerVoorstel, vervaltOp, vrijeSlots } from './planner.js';
 import { berekenPrijs, prijsTekst, type PrijsProfiel, type Prijsindicatie, type Werk } from './prijs.js';
 
 /** Seintje aan de monteur. Het gesprek blijft bij de bot. */
@@ -112,7 +113,21 @@ export async function verwerkBericht(
   if (!(uit.confidence >= CONFIDENCE_DREMPEL)) signalen.add('twijfel');
 
   // Nooit een leeg bericht: vraag dan gewoon naar wat er nog ontbreekt.
-  const antwoord = uit.antwoord?.trim() || terugvalVraag(kwalificatie, prijzen);
+  // Maar nooit twee keer hetzelfde terugvalbericht achter elkaar: zo liep de
+  // bot op 02-10-2026 vast op een IKEA-planner ("die zit er al bij").
+  let antwoord = uit.antwoord?.trim() || '';
+  if (!antwoord) {
+    const terugval = terugvalVraag(kwalificatie, prijzen);
+    const vorigeBot = [...ctx.historie].reverse().find((h) => h.afzender === 'bot')?.tekst.trim();
+    if (vorigeBot === terugval) {
+      antwoord =
+        `Dank u, ik heb uw bericht ontvangen. Ik kan het nu niet goed verwerken; ` +
+        `${profiel.aanspreeknaam || 'de monteur'} kijkt ernaar en u hoort vandaag van ons.`;
+      signalen.add('twijfel');
+    } else {
+      antwoord = terugval;
+    }
+  }
 
   // Filter draait zodra er genoeg bekend is — niet pas aan het eind.
   const oordeel = beoordeel(kwalificatie, profiel);
@@ -205,7 +220,21 @@ export async function zoekMomenten(
   profiel: MonteurProfiel & PlannerProfiel,
   deps: Pick<Afhankelijkheden, 'bezetting'>,
   opties: { prijsFlow: boolean; dagenMax?: number; vanaf?: Date },
-): Promise<{ soort: 'inmeting' | 'montage'; slots: Slot[] }> {
+): Promise<{ soort: SlotSoort; slots: Slot[] }> {
+  if (kwalificatie.type_klus === 'klusje') {
+    // Minimaal de gedekte uren; langer als het model meer werk inschat. Max een werkdag.
+    const minimum = klusjesAan(profiel) ? profiel.klusjes.minimum_uren : 2;
+    const uren = Math.min(8, Math.max(minimum, Number(kwalificatie.klusje_uren) || 0));
+    const nu = new Date();
+    const vanaf = opties.vanaf && +opties.vanaf > +nu ? opties.vanaf : nu;
+    for (const dagen of [28, 56]) {
+      const bezet = await deps.bezetting(vanaf, dagen);
+      const slots = vrijeSlots({ vanaf, dagen, soort: 'klusje', duurMin: uren * 60, profiel, bezet, klantPc4: kwalificatie.pc4 });
+      if (slots.length) return { soort: 'klusje', slots };
+    }
+    return { soort: 'klusje', slots: [] };
+  }
+
   const soort: 'inmeting' | 'montage' = opties.prijsFlow
     ? kwalificatie.ingemeten === false ? 'inmeting' : 'montage'
     : kwalificatie.keuken_geleverd === true ? 'montage' : 'inmeting';

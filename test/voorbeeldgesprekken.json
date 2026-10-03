@@ -1,0 +1,1932 @@
+[
+  {
+    "id": "marktplaats-nieuwe-keuken-later",
+    "bron": "Marktplaats",
+    "klus": "montage nieuwe keuken, levering over 3 maanden",
+    "taal": "nl",
+    "uitkomst": "prijs gegeven, klant meldt zich bij levering",
+    "les": "Goede vragen: apparatuur (vaatwasser, oven, kookplaat, koelkast) en woonplaats. Afwijking van de botregels: uurtarief genoemd en vaste prijs zonder onderdelenlijst. Bot: vraagt onderdelenlijst/plattegrond en leverdatum, en plant de montage alvast rond de leverdatum in plaats van \"neem contact op als hij er is\".",
+    "berichten": [
+      {
+        "rol": "klant",
+        "tijd": "06-07-2026 21:56",
+        "tekst": "Hallo ik heb op marktplaats geschreven"
+      },
+      {
+        "rol": "klant",
+        "tijd": "06-07-2026 21:56",
+        "tekst": "[2 foto's]"
+      },
+      {
+        "rol": "klant",
+        "tijd": "06-07-2026 21:56",
+        "tekst": "Deze kast komt over 3 maanden"
+      },
+      {
+        "rol": "klant",
+        "tijd": "06-07-2026 21:58",
+        "tekst": "Hoe veel gaat mij kosten montage bij u"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "06-07-2026 21:58",
+        "tekst": "Super, mooie model"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "06-07-2026 21:58",
+        "tekst": "Ik zal het even berekenen"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "06-07-2026 21:59",
+        "tekst": "Wat voor apparatuur heeft u allemaal? Vaatwasser, kokend water kraan, etc"
+      },
+      {
+        "rol": "klant",
+        "tijd": "06-07-2026 22:00",
+        "tekst": "Vaatwasser kleine model oven en kookplaat"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "06-07-2026 22:00",
+        "tekst": "Geen koelkast?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "06-07-2026 22:00",
+        "tekst": "Nee"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "06-07-2026 22:01",
+        "tekst": "Woont u in Rotterdam?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "06-07-2026 22:01",
+        "tekst": "Wateringen"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "06-07-2026 22:03",
+        "tekst": "Super"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "06-07-2026 22:05",
+        "tekst": "Ik reken altijd €45/uur\nDus voor deze keuken kom ik voor de montage uit op €1080"
+      },
+      {
+        "rol": "klant",
+        "tijd": "06-07-2026 22:07",
+        "tekst": "Ik vandaag tekening gemaakt en besteld maar het kont over 3 maanden zeiden ze"
+      },
+      {
+        "rol": "klant",
+        "tijd": "06-07-2026 22:07",
+        "tekst": "Als het komt ga ik contact nemen met uw"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "06-07-2026 22:08",
+        "tekst": "Super\nGraag wel op tijd, ik ben altijd komende anderhalve maand volgeboekt"
+      },
+      {
+        "rol": "klant",
+        "tijd": "06-07-2026 22:09",
+        "tekst": "Helemaal goed danku wel"
+      }
+    ]
+  },
+  {
+    "id": "marktplaats-nobilia-plan",
+    "bron": "Marktplaats",
+    "klus": "montage Nobilia-keuken, nog niet besteld",
+    "taal": "nl",
+    "uitkomst": "geen afspraak, gesprek valt stil",
+    "les": "Klant vraagt meteen naar de prijs; antwoord was uurtarief. Bot: geen uurtarief, wel bandbreedte uit prijs.ts als die aanstaat, en doorvragen naar leverdatum zodat er een datum geprikt kan worden. \"Vanaf nu tot oktober\" is een kans om direct te plannen.",
+    "berichten": [
+      {
+        "rol": "monteur",
+        "tijd": "09-06-2026 19:53",
+        "tekst": "Ha [KLANT], [MONTEUR] van marktplaats hier over de keuken installatie. Kan je mij wat informatie over de keuken kunnen geven?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 22:02",
+        "tekst": "Hoi [MONTEUR]"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 22:02",
+        "tekst": "[4 foto's]"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 22:03",
+        "tekst": "Dit is nu het meest recente plan"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 22:03",
+        "tekst": "Overwegend om de nobilia kasten aan te schaffen via topShelf"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "21-06-2026 10:43",
+        "tekst": "Ha [KLANT], Nobilia is een top keuze 👍🏼\nWeet je al wanneer je de keuken geplaatst wilt hebben?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "21-06-2026 11:35",
+        "tekst": "Ja ergens vanaf nu tm oktober"
+      },
+      {
+        "rol": "klant",
+        "tijd": "21-06-2026 11:35",
+        "tekst": "Ligt eraan hoe snel ik alles rondkrijg"
+      },
+      {
+        "rol": "klant",
+        "tijd": "21-06-2026 11:35",
+        "tekst": "Ken jij webshop topshelf waar ze de kasten verkopen zo ja betrouwbaar?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "21-06-2026 11:41",
+        "tekst": "Nog nooit eerder van gehoord"
+      },
+      {
+        "rol": "klant",
+        "tijd": "21-06-2026 11:41",
+        "tekst": "Wat reken jij voor de plaatsing?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "21-06-2026 11:45",
+        "tekst": "Standaard €45/uur"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "21-06-2026 11:45",
+        "tekst": "Maar als je bouwkundige tekeningen hebt kan ik je ook een totaalprijs geven"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "21-06-2026 11:46",
+        "tekst": "Ik zie dat je ook twee of drie stollen hebt tussen de kasten in. Wil je dat ik die ook maak?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "21-06-2026 13:20",
+        "tekst": "Uhm nee die stollen zijn niet helemaal correct"
+      },
+      {
+        "rol": "klant",
+        "tijd": "21-06-2026 13:20",
+        "tekst": "De keuken word ingebouwd"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "21-06-2026 13:56",
+        "tekst": "oke"
+      }
+    ]
+  },
+  {
+    "id": "marktplaats-vaste-prijs-met-scope",
+    "bron": "Marktplaats",
+    "klus": "montage keuken in vakantiehuis, kasten door klant gebouwd",
+    "taal": "nl",
+    "uitkomst": "vaste prijs akkoord, datum en starttijd vast",
+    "les": "Beste voorbeeld van een prijsbericht: vaste prijs plus precies wat erbij zit en wat niet (kasten in elkaar zetten zit er niet bij). Gebruik deze opsomming als sjabloon voor de bot.",
+    "berichten": [
+      {
+        "rol": "monteur",
+        "tijd": "07-12-2025 13:30",
+        "tekst": "Goede dag, [MONTEUR] hier 👋🏻 \nIk stuur u even een berichtje zodat u mijn nummer ook heeft"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "07-12-2025 13:33",
+        "tekst": "[7 foto's]"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "07-12-2025 13:35",
+        "tekst": "En ook even de fotos zodat ik deze makkelijk bij de hand heb voor de montage"
+      },
+      {
+        "rol": "klant",
+        "tijd": "07-12-2025 16:19",
+        "tekst": "Hallo [MONTEUR], dankjewel voor je reactie. Is prima, graag even een kosten indicatie doorgeven op basis van de 1,5 dag, start 3 jan. Is dit inclusief dat wij de kastjes in elkaar hebben gezet. Montage de deurtjes laten we aan jouw over. Groetjes [KLANT]"
+      },
+      {
+        "rol": "klant",
+        "tijd": "07-12-2025 16:24",
+        "tekst": "[2 foto's]"
+      },
+      {
+        "rol": "klant",
+        "tijd": "07-12-2025 16:26",
+        "tekst": "Hi [MONTEUR], heb je een idee hoe de waterleiding lopen (nu losgekoppeld) en de gootsteen afvoer."
+      },
+      {
+        "rol": "klant",
+        "tijd": "07-12-2025 16:28",
+        "tekst": "[3 foto's]"
+      },
+      {
+        "rol": "klant",
+        "tijd": "07-12-2025 16:30",
+        "tekst": "Hierbij de oude situatie"
+      },
+      {
+        "rol": "klant",
+        "tijd": "07-12-2025 16:32",
+        "tekst": "[foto]"
+      },
+      {
+        "rol": "klant",
+        "tijd": "07-12-2025 16:33",
+        "tekst": "3D impressie van de nieuwe keuken"
+      },
+      {
+        "rol": "klant",
+        "tijd": "07-12-2025 16:37",
+        "tekst": "Gootsteen, kraan, koelkast, combimagnetron, gaskookplaat worden hergebruikt"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "07-12-2025 18:20",
+        "tekst": "👍🏻 super\nHardstikke fijn, die Fotos.\n\nDe kosten voor de montage zijn €750 voor deze keuken. \nHierbij zit het aanpassen en waterpas monteren van de kasten, blad uitsparen, maat zagen, koppelen en monteren. Installatie van al het witgoed incl inbouwafzuigkap, kraan en wasbak. Hangen en stellen van alle deuren. Monteren van alle mogelijk bijgeleverde passtroken, plinten zagen en monteren en alles afkitten. \nNadat de keuken is afgemaakt zullen we hem samen doornemen waar ik u item voor item vertel over de werking, het onderhoud, en hoe en wat"
+      },
+      {
+        "rol": "klant",
+        "tijd": "07-12-2025 18:22",
+        "tekst": "Oké. Zet je dan zelf de kastjes in elkaar of doe ik dat."
+      },
+      {
+        "rol": "monteur",
+        "tijd": "07-12-2025 18:24",
+        "tekst": "De kasten in elkaar zetten zit daar niet bij"
+      },
+      {
+        "rol": "klant",
+        "tijd": "07-12-2025 18:25",
+        "tekst": "Oké. Dat doen wij dan. Wil je het cash of per bank?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "07-12-2025 18:26",
+        "tekst": "Als het cash kan dan graag cash!"
+      },
+      {
+        "rol": "klant",
+        "tijd": "07-12-2025 18:29",
+        "tekst": "Geen probleem & fijn dat je kan komen. En tot 3 jan. Adres [ADRES], bij de slagboom ontmoeten."
+      },
+      {
+        "rol": "klant",
+        "tijd": "07-12-2025 18:29",
+        "tekst": "Hoe laat?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "07-12-2025 18:30",
+        "tekst": "Zou het vanaf 07:00 kunnen?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "07-12-2025 18:31",
+        "tekst": "Geen probleem"
+      },
+      {
+        "rol": "klant",
+        "tijd": "07-12-2025 18:33",
+        "tekst": "Heb je idee voor een achterwand ? Geen tegels ?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "07-12-2025 18:39",
+        "tekst": "[LINK]\nDit is een hoogwaardig product wat ik kan aanraden\nEr zijn ook pvc platen op de markt, maar dan moet u wel uitkijken bij de kookplaat ivm hitte"
+      },
+      {
+        "rol": "klant",
+        "tijd": "07-12-2025 18:40",
+        "tekst": "👍"
+      }
+    ]
+  },
+  {
+    "id": "doorverwijzing-spoelbak-vervangen",
+    "bron": "doorverwijzing",
+    "klus": "spoelbak vervangen en spatwand kitten",
+    "taal": "nl",
+    "uitkomst": "prijs akkoord, wacht op levering spoelbak",
+    "les": "Goed: vraagt eerst foto's, dan maten van spoelbak en kast, en geeft concreet advies (opbouwspoelbak, breder dan huidige, smaller dan kast). Bundelt het werk in één bezoek. Dit is kleine reparatie zonder uurnorm: bot verzamelt foto's en maten en draagt over aan de monteur voor de prijs.",
+    "berichten": [
+      {
+        "rol": "klant",
+        "tijd": "16-07-2026 16:09",
+        "tekst": "Dag [MONTEUR],\n\nMijn naam is [KLANT]. Ik ben de moeder van [DOORVERWIJZER].\nZe heeft mij jou aanbevolen, omdat je volgens haar gespecialiseerd bent in keukens. \n\nNu heb ik een reparatie nodig aan de wasbak en het aanrechtblad in mijn keuken en wil je daarom vragen of je een keer zou willen langskomen om te kijken.\n\nHeb je interesse en zo ja, wanneer ben je beschikbaar?\n\nDank alvast en groetjes,\n[KLANT]"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "17-07-2026 11:37",
+        "tekst": "Ha [KLANT] 👋🏼\nWat leuk dat [DOORVERWIJZER] je naar mij doorverwezen heeft"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "17-07-2026 11:37",
+        "tekst": "Komende dagen heb ik wel tijd om langs te komen! \nHeeft u misschien een foto van het probleem?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "17-07-2026 13:20",
+        "tekst": "Gdm, dat is fijn.\nKan je maandag?\n\nIk wil mijn wasbak vervangen vanwege schade en een deel van de spatwand moet opnieuw gekit worden. Hopelijk zie je het goed op de foto's"
+      },
+      {
+        "rol": "klant",
+        "tijd": "17-07-2026 13:20",
+        "tekst": "[3 foto's]"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "17-07-2026 15:12",
+        "tekst": "Ah juist, wat jammer \nHeeft u al een nieuwe wasbak in huis?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "17-07-2026 15:13",
+        "tekst": "Maandag is helaas al gereserveerd maar dinsdag of woensdag kan ik wel!"
+      },
+      {
+        "rol": "klant",
+        "tijd": "17-07-2026 20:49",
+        "tekst": "Nee die heb ik nog niet. Ik zou eerst advies willen hebben daarover"
+      },
+      {
+        "rol": "klant",
+        "tijd": "17-07-2026 20:49",
+        "tekst": "Woensdag is goed. Hoelaat?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "17-07-2026 20:53",
+        "tekst": "Aah. \nIn ieder geval moet het een grotere spoelbak zijn dan uw huidige, en het moet helaas wel een opbouw spoelbak zijn, die is dus niet vlak met het keukenblad.."
+      },
+      {
+        "rol": "klant",
+        "tijd": "17-07-2026 21:08",
+        "tekst": "Dat klopt. Had ik al in gedachten had. Dan spreken we elkaar woensdag. Laat maar weten hoelaat"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "17-07-2026 22:02",
+        "tekst": "Kunt u mij nog een foto sturen van de voorkant van uw wasbak/kast?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "17-07-2026 22:03",
+        "tekst": "En misschien eentje waar ik het blad van links tot rechts kan zien van uw keuken, dan weet ik eigenlijk ook wel genoeg over wat de beste opties zijn"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "17-07-2026 22:03",
+        "tekst": "Woensdag kan ik langs komen, maar het liefst rijs ik zo min mogelijk voor werk als ik niks kan uitvoeren"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-07-2026 13:41",
+        "tekst": "[2 foto's]"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-07-2026 13:43",
+        "tekst": "Afmeting spoelbak merk [MERK] inclusief rand in cm is \n45 breed x 40 lang\nRand is 1,7 cm breed\nHoogte in de wasbak is 20 cm"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-07-2026 13:46",
+        "tekst": "Hmm, en hoe breed is uw spoelbak kast?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-07-2026 13:46",
+        "tekst": "60 cm"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-07-2026 13:47",
+        "tekst": "Ik zou graag weer een zwarte willen, maar dan met een kraangat. Kan dat?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-07-2026 13:49",
+        "tekst": "[foto]"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-07-2026 13:50",
+        "tekst": "Het is belangrijk dat het gat wat nodig is, breder is dan uw huidige spoelbak, maar minder is dan 60cm"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-07-2026 18:25",
+        "tekst": "Deze is qua model goed, maar kan het smaller, dus 50 cm?\nIk vind 55 cm net iets te breed. \nDus 50/45 breed en 45/34,5 lang"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-07-2026 18:30",
+        "tekst": "[2 foto's]"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-07-2026 18:41",
+        "tekst": "Is het makkelijk de spatwand opnieuw te kitten? Deze zit losjes vanwege wateroverlast, waarbij er vocht in de muur was getrokken"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-07-2026 19:58",
+        "tekst": "Jaa dat is geen probleem 👍🏼"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-07-2026 20:00",
+        "tekst": "Ik denk het wel! Wat ik ga doen, is ik zaag de spoelbak uit het blad, en in deze sparing komt de nieuwe spoelbak. Die valt dan hopelijk volledig over de opgezette randen maar binnen de spoelbak kast. En deze kit ik goed af zodat er verder geen waterschade gaat komen"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-07-2026 20:02",
+        "tekst": "Ik denk dat het met 45cm net gaat om een spoelbak van 50cm te nemen"
+      },
+      {
+        "rol": "klant",
+        "tijd": "21-07-2026 16:26",
+        "tekst": "Dat is mooi. \nMoet ik de spoelbak zelf bestellen? Maar dan is hij er morgen nog niet."
+      },
+      {
+        "rol": "klant",
+        "tijd": "21-07-2026 16:27",
+        "tekst": "Gelet op alle werkzaamheden wat worden de te verwachten kosten?\nKan je alvast een prijsindicatie sturen?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "21-07-2026 16:28",
+        "tekst": "Ik neem aan dat je in afwachting van de spoelbak nog niet komt morgen toch?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "21-07-2026 16:33",
+        "tekst": "Graag, u kunt er ook eentje naar keus in uw locale bouwmarkt vinden die dus in de nieuwe sparing past"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "21-07-2026 16:39",
+        "tekst": "Voor alle werkzaamheden bij elkaar bekost het €415 incl. Btw"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "21-07-2026 16:39",
+        "tekst": "Nee helaas, het is beter als ik in 1x alles uitvoer"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "21-07-2026 16:40",
+        "tekst": "Tenzij u daar behoefte aan hebt maar dan kost het wat meer natuurlijk"
+      },
+      {
+        "rol": "klant",
+        "tijd": "21-07-2026 20:59",
+        "tekst": "Goed ik laat je weten als ik de spoelbak heb"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "21-07-2026 21:53",
+        "tekst": "Top!"
+      }
+    ]
+  },
+  {
+    "id": "marktplaats-klein-klusje-afgehaakt",
+    "bron": "Marktplaats",
+    "klus": "IKEA vaatwasserfront wisselen",
+    "taal": "nl",
+    "uitkomst": "klant haakt af (zelf opgelost)",
+    "les": "Klein klusje met vaste prijs. De vervolgvraag van de klant werd pas na 2 dagen beantwoord en de opvolging kwam een week later; klant had het intussen zelf gedaan. Precies de lead die de bot binnen een minuut moet pakken.",
+    "berichten": [
+      {
+        "rol": "klant",
+        "tijd": "08-06-2026 20:51",
+        "tekst": "Goedenavond, ik heb uw nummer via uw advertentie van marktplaats. Ik heb een ikeavaatwasserfront die verwisseld moet worden"
+      },
+      {
+        "rol": "klant",
+        "tijd": "08-06-2026 20:51",
+        "tekst": "Gaat om voxtorp deur die eraf moet en ook een voxtorp deur die er weer op moet"
+      },
+      {
+        "rol": "klant",
+        "tijd": "08-06-2026 20:51",
+        "tekst": "[2 foto's]"
+      },
+      {
+        "rol": "klant",
+        "tijd": "08-06-2026 20:51",
+        "tekst": "Kunt u dat voor ons vervangen en zo ja wat is uw prijs?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "08-06-2026 21:02",
+        "tekst": "Goede avond 👋🏼 \nVoor kleine klusjes zoals dit reken ik standaard €85. Als dit bedrag voor u oké is, heeft u al een datum wanneer het nieuwe front geleverd wordt?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "09-06-2026 22:08",
+        "tekst": "Goedenavond, de nieuwe front heb ik al"
+      },
+      {
+        "rol": "klant",
+        "tijd": "09-06-2026 22:08",
+        "tekst": "Is hetzelfde"
+      },
+      {
+        "rol": "klant",
+        "tijd": "09-06-2026 22:08",
+        "tekst": "Heeft u ervaring met ikea keukens?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "11-06-2026 22:28",
+        "tekst": "Zeker, vaak zijn de fronten voor de vaatwasser hiervan erg simpel ook"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "17-06-2026 22:39",
+        "tekst": "Goede avond, had u nog interesse?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "17-06-2026 22:46",
+        "tekst": "Goedenavond, excuses ik heb helemaal niet meer gereageerd. Het is al gelukt en niet meer nodig. Bedankt nog !"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "17-06-2026 22:47",
+        "tekst": "Geen probleem, fijne avond!"
+      }
+    ]
+  },
+  {
+    "id": "marktplaats-tweedehands-demontage-montage",
+    "bron": "Marktplaats",
+    "klus": "tweedehands keuken demonteren, vervoeren en monteren",
+    "taal": "nl",
+    "uitkomst": "datum en adres vast binnen 2 uur",
+    "les": "Sterk gesprek: snelle reactie, vraagt naar huidige keuken, transport, materiaal blad, en prikt meteen een datum. Afwijking: bandbreedte arbeid + materiaal ingeschat zonder lijst en klant noemt budget onder de bandbreedte (\"krap maar haalbaar\"). Bot: geen onderhandeling, prijsbezwaar → seintje monteur.",
+    "berichten": [
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 20:16",
+        "tekst": "Yo, ik had je gevonden via Marktplaats. Ik zoek een monteur die een tweedehands keuken voor mij kan demonteren bij de verkoper en vervolgens bij mij kan monteren. Ik hoor graag of daar mogelijkheden voor zijn en of je eventueel tijd hebt.”"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 20:17",
+        "tekst": "Hee, wat top! \nu bent bij het juiste adres.\nIk doe het compleet ontzorgen van tweedehands keukens verhuizen, monteren, en aanpassen op maat. \nHeeft u al een keuken op het oog?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 20:20",
+        "tekst": "[foto]"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 20:20",
+        "tekst": "Het gaat om deze keuken 230x240x185"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 20:21",
+        "tekst": "👍🏻laten we hier via whatsapp verder praten"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 20:21",
+        "tekst": "Dit is [KLANT] neem ik aan?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 20:21",
+        "tekst": "Is niet me echte naam wordt alleen op marktplaats gebruikt"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 20:21",
+        "tekst": "Maar ja"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 20:22",
+        "tekst": "Haha eerlijk 👍🏻"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 20:22",
+        "tekst": "Welke prijs kan je maken voor dit alles bij elkaar"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 20:22",
+        "tekst": "Ik kan gewoon cash betalen"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 20:26",
+        "tekst": "Ik zal even kijken hoe duur alles tegenwoordig is. Voor een keuken van dit formaat huur ik een verhuiswagen. Wil je dat ik uw huidige keuken naar de stort breng?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 20:27",
+        "tekst": "Mijn huidige keuken kan ik zelf slopen en wegbrengen."
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 20:29",
+        "tekst": "Voor de keuken kan ik eventueel zelf het transport regelen, maar als je ook een prijsindicatie inclusief transport kunt geven, dan zal ik dat overwegen.”"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 20:35",
+        "tekst": "Dat kan wel voordelig zijn. De vorige keer was het huren van transport €230\nHet liefst werk ik voor tweedehands keuken klussen op uurbasis, €45 per uur. De complexiteit van de keuken speelt namelijk een grote factor. Voor wat ik van de foto kan zien gok ik de arbeid tussen 1100 en 1900. Afhankelijk van het blad, de nieuwe situatie, verticaal transport, evt reparaties"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 20:46",
+        "tekst": "Klein materiaal is vaak tussen de €50 en €200, afhankelijk of er leidingwerk verlengt moet worden en extra afwerkmateriaal moet worden gehaald. \nDus in totaal krijg je het gedaan voor tussen de 1500-2500"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 21:08",
+        "tekst": "Mijn budget is tussen 1000/1500 \nTransport wagen kan ik eventueel zelf terplaatse brengen"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 21:18",
+        "tekst": "Dat is erg krap, maar misschien net haalbaar. \nZou u mogelijk mee willen helpen met het transport? Dan hoef ik geen tweede man in te schakelen"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 21:19",
+        "tekst": "Ik kan je helpen met nog tweede man erbij"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 21:19",
+        "tekst": "Dat is geen probleem"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 21:19",
+        "tekst": "En weet u wat voor materiaal het blad is? Als het composiet of graniet is gaat hier wel wat werk in zitten om het te ontkoppelen"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 21:20",
+        "tekst": "Dat moet ik even navragen dan , mocht je deze klus kunnen aannemen is het mogelijk voor maandag te kunnen starten ?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 21:20",
+        "tekst": "Dat is mogelijk 👍🏻"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 21:23",
+        "tekst": "De persoon weet niet van welke stof het precies is omdat de keuken al in het huis stond maar het is geen kunststof"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 21:24",
+        "tekst": "[foto]"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 21:25",
+        "tekst": "Ik neem aan composiete bladen met twee componenten epoxy verbonden."
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 21:26",
+        "tekst": "Wat denk je gaat het lukken ?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 21:27",
+        "tekst": "Ik heb dit 1x eerder los gekregen met veel hitte en veel schrapen"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 21:27",
+        "tekst": "Ik hoop het 😂"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 21:28",
+        "tekst": "Met geduld en niet te gek doen kom je een heel eind 👍🏻"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 21:29",
+        "tekst": "Maar de keukenblad is door de epoxy moeilijk te demonteren zeg je ?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 21:29",
+        "tekst": "Absoluut"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 21:30",
+        "tekst": "Die epoxy is harder dan het blad zelf"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 21:30",
+        "tekst": "Ja als je zegt het te willen wagen"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 21:31",
+        "tekst": "Zeker!"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 21:32",
+        "tekst": "Vanaf wanneer heb je tijd ?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 21:33",
+        "tekst": "Vanaf morgen 16:00"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 21:33",
+        "tekst": "De vrijdag heb ik ook altijd vrij voor dit soort klussen"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 21:34",
+        "tekst": "Deze vrijdag heb ik wel wat afspraken staan , is zondag of zat goed ?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 21:35",
+        "tekst": "Zaterdag ochtend is ook goed!"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 21:36",
+        "tekst": "Mogelijk zondag dan al beginnen van de montage als alles soepel verloopt"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 21:36",
+        "tekst": "Is goed"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 21:37",
+        "tekst": "Zaterdag ochtend ik stuur je dan vrijdag even het adres"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 21:37",
+        "tekst": "Top."
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 21:37",
+        "tekst": "6:30?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 21:39",
+        "tekst": "Ik vindt 6:30 goed maar moet het ook even afstemmen met de verkoper r"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 21:39",
+        "tekst": "[foto]"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 21:40",
+        "tekst": "De bovenste"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 21:40",
+        "tekst": "Met laadklep als ze die hebben"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 21:40",
+        "tekst": "Ja dat zeker"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 21:46",
+        "tekst": "Hoelang ben je ongeveer bezig met demontage ?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 21:49",
+        "tekst": "Durf ik eigenlijk geen duidelijk antwoord op te geven, voor wat ik van de fotos zie misschien 4-10 uur"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 21:50",
+        "tekst": "Het kan heel vlot gaan maar het kan ook heel erg tegen zitten"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 21:51",
+        "tekst": "Nee dat is goed"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 22:00",
+        "tekst": "7:00 is mogelijk"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 22:01",
+        "tekst": "Het adres is [ADRES]"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-05-2026 22:03",
+        "tekst": "Top. Dan zal ik zaterdag om 07:00 op dit adres zijn"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-05-2026 22:06",
+        "tekst": "Toppie 👍"
+      }
+    ]
+  },
+  {
+    "id": "engels-showroomkeuken-verbouwing",
+    "bron": "Marktplaats (vermoedelijk)",
+    "klus": "showroomkeuken demonteren, vervoeren, oude keuken eruit, leidingwerk, elektra, koof",
+    "taal": "en",
+    "uitkomst": "uitgebreide offerte, belafspraak (twee keer niet doorgegaan)",
+    "les": "Engelstalig: de bot moet de taal van de klant volgen. Groot project met werk zonder uurnorm (leidingwerk, groep, koof) → hoort bij de monteur. Bot verzamelt: situatie nu/nieuw, maten, meterkastfoto, kruipruimte, gewenste periode. Let op: de belafspraak werd vergeten; een agenda-item had dat voorkomen.",
+    "berichten": [
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:35",
+        "tekst": "Hi [MONTEUR], \n\nThe kitchen is at the moment still in the shop In Zoetermeer on the first floor but they have a big elevator that can be used..\nThe shop will provide the bubble wrap and tape and Plateauwagen"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:35",
+        "tekst": "[2 foto's]"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:37",
+        "tekst": "Work to be done:\n\nCurrent situation parallel setup\nTotale lengte sink side 2,74m\nTotale lengte tv wall 2,93\n\nNew setup\nSink countertop \nwill be on tv wall side is 2,71m \nTowerCloset on opposite side\n is H2,14m en B1,87m\n\nKitchen island in the spot of dining table. 1,08m x 1,92m\n\nAdditional work:\nTile under both sides new kitchen total\n around 4m3.\nHoles drilling for water and induction cooking plate.\nExtra group in meterkast.\nOld kitchen disassembled and new kitchen installed.\nCustom framework around towercloset as shop setup"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:38",
+        "tekst": "[3 foto's]"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:39",
+        "tekst": "This is the old kitchen setup..sink on the left, dishwasher on the right side ( thus already water connection also on the right side).."
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:40",
+        "tekst": "The brown wood towers will come on the left side of the parallel setting"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:43",
+        "tekst": "Also with an artificial wall"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:45",
+        "tekst": "I believe we can arrange via de gemeente for the pick up of the old kitchen"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 13:46",
+        "tekst": "[foto]"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:46",
+        "tekst": "No, the other side"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:46",
+        "tekst": "This is the right side of the parallel kitchen"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:46",
+        "tekst": "Her we will have the sink and dishwasher"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:47",
+        "tekst": "And the island will come towards into the living room as a continuation from the kitchen"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:47",
+        "tekst": "[foto]"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:48",
+        "tekst": "Further from the plants will be be placed the island"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:49",
+        "tekst": "From the island you will then see on the left the wooden tower cabinets and left the sink and dishwasher"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 13:50",
+        "tekst": "Great I understood the setup 👍🏼 \nFor the plumbing, gas, and electrical work, do you have a crawlspace I can move through?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:51",
+        "tekst": "We don’t need the gas anylonger, new kitchen is with induction"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:51",
+        "tekst": "Crowlspace under the house"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 13:52",
+        "tekst": "I know, but I might have to close the old one from below"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:52",
+        "tekst": "Under the old kitchen was also not placed tiles..we might need to place few tiles"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 13:52",
+        "tekst": "Yes, for what reason are you suggesting"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:53",
+        "tekst": "At the moment we have the dishwasher on the right side, thus there is some water connection"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:53",
+        "tekst": "And on left we have the sink"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:53",
+        "tekst": "But the new setting sink + dishwasher will be all placed on the right side of"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:54",
+        "tekst": "My husband things best to have tiles under the kitchen :)"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 13:55",
+        "tekst": "What for? 😅"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:55",
+        "tekst": "We intend to bring the new kitchen to Amstelveen by the end of July"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:55",
+        "tekst": "Men thinking 😂"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:55",
+        "tekst": "Thus the old one should be out by then"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:55",
+        "tekst": "Is this workable for you"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:55",
+        "tekst": "And what would be the aprox price"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 13:55",
+        "tekst": "... Okay 😅"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 13:56",
+        "tekst": "Can you also show me a picture of the meterkast?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 13:58",
+        "tekst": "[2 foto's]"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 13:58",
+        "tekst": "[foto]"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:00",
+        "tekst": "[2 foto's]"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:01",
+        "tekst": "Work to be done:\n\nCurrent situation parallel setup\nTotale lengte sink side 2,74m\nTotale lengte tv wall 2,93\n\nNew setup\nSink countertop \nwill be on tv wall side is 2,71m \nTowerCloset on opposite side\n is H2,14m en B1,87m\n\nKitchen island in the spot of dining table. 1,08m x 1,92m\n\nAdditional work:\nTile under both sides new kitchen total\n around 4m3.\nHoles drilling for water and induction cooking plate.\nExtra group in meterkast.\nOld kitchen disassembled and new kitchen installed.\nCustom framework around towercloset as shop setup"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:01",
+        "tekst": "My husband mentioned few things here"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 14:06",
+        "tekst": "Great. I will work on the price today. What date range is possible for you to execute the job? I think we'll need roughly 7 days to finish the project"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:07",
+        "tekst": "Ideally we should have the place ready for new kitchen before July 31st"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:08",
+        "tekst": "Last week of July then is the work for taking out old kitchen"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:08",
+        "tekst": "Are you working alone or with more people?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:10",
+        "tekst": "Another question..our place was not painted for several years..and I think it makes sense to first paint and afterwards to place the new kitchen, right? \n\nMy Dutch husband says that first we have the new kitchen placed and afterwards painting 🧐 \n\nWhat is best and what it makes sense to you?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 14:11",
+        "tekst": "I have a network. Transporters, electricien, designers. But I prefer to do it myself and het help if it's too much work"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:11",
+        "tekst": "Time wise we have July maybe until mid August"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 14:12",
+        "tekst": "For the meterkast I will ask the electricien bc it might have to be redone"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:12",
+        "tekst": "Ok"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 14:12",
+        "tekst": "Yes, but the artificial wall has to be painted too afterwards"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:12",
+        "tekst": "Maybe an extra group meterkast"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 14:13",
+        "tekst": "So save some paint in the same colour for that"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:13",
+        "tekst": "Oh it doesn’t come painted already ..ok:)"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:14",
+        "tekst": "But shall we paint before the kitchen in or afterwards?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:14",
+        "tekst": "Husband conflict discussion :)"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:14",
+        "tekst": "I mean the walls"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:14",
+        "tekst": "Can you do also painting"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 14:14",
+        "tekst": "It would be cheaper.  I'll ask the expert if it's doable 👍🏼 you don't want the main switch to shut off bc of overloading. The induction needs 2 groups minimal, it's a nice one for what I can see"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 14:16",
+        "tekst": "No, I have to custom make it on the spot out of big mdf panels"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:16",
+        "tekst": "Ok, and do you have also great painting skills?:)"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 14:16",
+        "tekst": "I have someone in my network who can paint very well 😅"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:16",
+        "tekst": "Ok, sounds good"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:17",
+        "tekst": "Good start, if the offer is also market conform and within limits we will have a deal then"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:18",
+        "tekst": "Do you have a truck also for transportation kitchen from Zoetermeer to Amstelveen"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:18",
+        "tekst": "?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:18",
+        "tekst": "As long as is not a Picasso, it is fine"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 14:20",
+        "tekst": "Before I met my transport team I hired a box truck for €120 a day. If they give a price that I think is too high, this would be my preferred option so I can control wether it's packed well to have no damage"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 14:21",
+        "tekst": "I will go to the library now to work behind my laptop, we'll keep in touch! 👋🏼"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:21",
+        "tekst": "Husband is Dutch and he is with the budget and I am with the design and placing things 😁"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 14:22",
+        "tekst": "Ok, looking forward to hearing from you"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 15:23",
+        "tekst": "would you just want the price for the koof(artificial wall) or the entire room, or both?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 15:28",
+        "tekst": "Entire room"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 15:28",
+        "tekst": "And both"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 16:38",
+        "tekst": "Because it's weekend I can't get a quote from some of my coworkers, but I'll get back to you on monday in the afternoon with a list of how much every part will cost. Then we can see if it's in budget, if it's too much we can discuss some options like no tiles under the kitchen 😉"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 16:41",
+        "tekst": "btw, the electrician said we can expand the current meterkast👍🏻  but the small box next to it is not to code so he'll fix it."
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 16:41",
+        "tekst": "Super, sounds good"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 16:43",
+        "tekst": "For dissembling the new kitchen From Zoetermeer, I got yesterday an offer for euro 150..apparently it takes 3-4 hours\nIs this something that you had in mind as well?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 16:52",
+        "tekst": "For just disasambly?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 16:53",
+        "tekst": "Yes"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 16:53",
+        "tekst": "If it's two guys putting it in a truck and strapping it in correctly it's a really really good price"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 16:53",
+        "tekst": "And placing everything in bubble wrap"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 16:54",
+        "tekst": "Ok, shall i agree with him then for July 31st to do it in the morning"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 16:54",
+        "tekst": "And will arrange with you for transportation and assembling at home?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 16:54",
+        "tekst": "Well wait! 😅 I'm a bit careful with grabbing guys from the street to do this work hahaha"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 16:55",
+        "tekst": "He has a company"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 16:55",
+        "tekst": "And I will ask my husband to be there during the job"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 16:55",
+        "tekst": "Just think about it"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 16:55",
+        "tekst": "What is his company?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 16:56",
+        "tekst": "[foto]"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 17:02",
+        "tekst": "I can't find him but that's a good amount of good reviews"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 17:02",
+        "tekst": "[foto]"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 17:03",
+        "tekst": "If your husband also helps, I can do it also for €150 for sure"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 17:05",
+        "tekst": "I would charge more but I really don't want any damage with disasambly and transport haha"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 17:15",
+        "tekst": "Three weeks ago I installed a kitchen but the delivery that the customer choose was horrible. The oven was broken and the kitchen was placed outside so it had water damage :[] \nSo I really prefer to have all the responsibility myself haha"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 17:15",
+        "tekst": "[2 foto's]"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 17:18",
+        "tekst": "Once at home I will talk to my husband about it"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 17:18",
+        "tekst": "Nice to see more projects photos you’ve done :)"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 17:18",
+        "tekst": "Have to convince my husband 😁"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "20-06-2026 17:24",
+        "tekst": "[6 foto's]"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 17:25",
+        "tekst": "Super..Once at home I will discuss it also with my husband"
+      },
+      {
+        "rol": "klant",
+        "tijd": "20-06-2026 17:25",
+        "tekst": "To see if free on July 31st"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-06-2026 18:28",
+        "tekst": "Hi [MONTEUR], I was wondering if you have already a draft offer."
+      },
+      {
+        "rol": "monteur",
+        "tijd": "22-06-2026 19:01",
+        "tekst": "Hey [KLANT]. I do have a draft ready, only I think the price of transport is a bit high so I'm asking if we can lower it before I tell you it's that expensive"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-06-2026 19:03",
+        "tekst": "Otherwise I could be in touch with a company"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-06-2026 19:03",
+        "tekst": "That might help"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-06-2026 19:03",
+        "tekst": "What price do you have now?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "22-06-2026 19:16",
+        "tekst": "A high one 😂 \n€2000 for demontage of the old kitchen + transport of the new kitchen \n\nBut I think I can do it for €1300"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-06-2026 19:17",
+        "tekst": "I thought you were searching only for transportation"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-06-2026 19:18",
+        "tekst": "And are you able yourself to dissemble the old kitchen?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "22-06-2026 19:18",
+        "tekst": "I was but he wouldn't give me a price without removing the old kitchen also"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-06-2026 19:18",
+        "tekst": "Or searching for a third party?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-06-2026 19:18",
+        "tekst": "I see"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-06-2026 19:24",
+        "tekst": "When time allows you, it would be great if you could also send me more photos on your previous projects..do you have a registered company? Any website? \nAnd what is your core work? Just to make sure I understand a bit and to explain also to the husband..:)"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-06-2026 19:24",
+        "tekst": "And how many years of experience..are you from around Amstelveen?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "22-06-2026 19:26",
+        "tekst": "Possible, if it's a lot above budget you can try, but I'm very comfortable with doing it too."
+      },
+      {
+        "rol": "monteur",
+        "tijd": "22-06-2026 19:27",
+        "tekst": "I've worked for 6 years in kitchens :) \nAlso delivering them, doing second hand kitchens, doing high end kitchens, I've also worked inside kitchen companies who ware very bad and very good  haha"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "22-06-2026 19:27",
+        "tekst": "But I'm from Rotterdam (not my choice, I was born here)"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-06-2026 19:31",
+        "tekst": "My husband is also from around Rotterdam..👍"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-06-2026 19:32",
+        "tekst": "Ok, so you have the experience with dissembling and assembling kitchens.."
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-06-2026 19:33",
+        "tekst": "And if we need a painter then we need an external party"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-06-2026 19:33",
+        "tekst": "For transportation can we maybe rent a van?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "22-06-2026 19:33",
+        "tekst": "I think that would be good. My network is mostly Rotterdam based"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "22-06-2026 19:34",
+        "tekst": "Yes, when I transport myself I always rent the boxtruck from Bo-rent because its the cheapest at €120"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-06-2026 19:34",
+        "tekst": "Is then something we can do then?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-06-2026 19:35",
+        "tekst": "Without having an external party?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "22-06-2026 19:35",
+        "tekst": "Yes! Its included in the €1300 I calculated"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "22-06-2026 19:36",
+        "tekst": "I also prefer it because I can place the kitchen in the room that it's the easiest to assamble, and I know I won't lose any parts in transport"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-06-2026 19:36",
+        "tekst": "1300 is transportation, dissembling old kitchen and assembling new one"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-06-2026 19:36",
+        "tekst": "?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "22-06-2026 19:38",
+        "tekst": "No sadly not haha, it's removing old kitchen, disassembly of showroom kitchen, and moving the showroom kitchen. To Amstelveen"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "22-06-2026 19:38",
+        "tekst": "I'm installing a quooker right now but after I can send the the prices of the rest of the work"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "22-06-2026 21:23",
+        "tekst": "Sorry for the wait. \nHere is the calculation I made to complete the kitchen renovation. \n\nDisassamble old kitchen, transport new kitchen to Amstelveen €1300\nRelocating water in and outlet: €920 (incl. Materials) \nInduction cooking perilex outlet & meterkast €400 (excl material)\nExtra tiles under kitchen feet: €300\nKitchen installation: €1350 \nFake wall: €1750\nUnforseen work: relocating or adding electrical work(maybe needed for led greeplijst or new oven spot.  max€500) \nTotal cost excl electrical material: \n€6.520 \n\nLet me know if this is roughly what you expected, we can discuss every part you feel needs attention"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-06-2026 21:28",
+        "tekst": "Thank you! Shall we have a phone call coming Wednesday also with my husband to have a better understanding of all costs"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-06-2026 21:30",
+        "tekst": "And is it possible also the number of hours aprox per job and how much is your fee per hour?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-06-2026 21:30",
+        "tekst": "Thank you!"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-06-2026 21:32",
+        "tekst": "We bought a showroom kitchen in order to reduce some costs but it looks like we end up higher than if we would have ordered a new custom made one 🙄"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "22-06-2026 21:34",
+        "tekst": "Yes please 🙏🏼 I'll prepare for it!"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "22-06-2026 21:35",
+        "tekst": "There are also cheaper options for the fake wall, and we can do no tiles under the kitchen ofc 😉😅"
+      }
+    ]
+  },
+  {
+    "id": "demontage-kort",
+    "bron": "onbekend",
+    "klus": "keuken demonteren",
+    "taal": "nl",
+    "uitkomst": "afspraak woensdag 8:00",
+    "les": "Zeer korte klant (weinig tekst, foto's). Bot moet met korte vragen werken en niet overvragen. Het voorstel zelf is niet in de export te zien (lege berichten).",
+    "berichten": [
+      {
+        "rol": "klant",
+        "tijd": "21-06-2026 10:06",
+        "tekst": "Hoi"
+      },
+      {
+        "rol": "klant",
+        "tijd": "21-06-2026 10:06",
+        "tekst": "U doet Keukens demontere"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "21-06-2026 10:43",
+        "tekst": "Goede morgen, klopt!"
+      },
+      {
+        "rol": "klant",
+        "tijd": "21-06-2026 10:59",
+        "tekst": "[2 foto's]"
+      },
+      {
+        "rol": "klant",
+        "tijd": "21-06-2026 11:00",
+        "tekst": "De keuken in nog niet inelkaar gezet"
+      },
+      {
+        "rol": "klant",
+        "tijd": "21-06-2026 12:01",
+        "tekst": "[MONTEUR] dankjewel mijn [ADRES]"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "21-06-2026 12:08",
+        "tekst": "👍🏻 geen probleem, ik zie je woensdag!"
+      }
+    ]
+  },
+  {
+    "id": "doorverwijzing-kleine-klusjes",
+    "bron": "doorverwijzing buren",
+    "klus": "lampen, gordijnrails, schilderijen ophangen",
+    "taal": "nl",
+    "uitkomst": "afspraak vrijdag 10:00",
+    "les": "Geen keukenwerk. Profielinstelling `weigert`/werkgebied bepaalt of de bot dit aanneemt of netjes afwijst.",
+    "berichten": [
+      {
+        "rol": "klant",
+        "tijd": "30-03-2025 17:44",
+        "tekst": "Hi! Ik ben pas verhuisd en kreeg je nummer van een van de nieuwe buren. Ik heb wat hulp nodig met gordijnen en lampen ophangen etc. Zou je daarbij kunnen helpen? Alvast bedankt! Groetjes, [KLANT]"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "30-03-2025 20:52",
+        "tekst": "Hee [KLANT]! \nJa top dat kan zeker 👍 \nWanneer zou je willen dat ik hiervoor langs kom? \nToevallig zit ik volgende week met werk in Belgie tot donderdag, maar ik kan wel de vrijdag, zaterdag, en zondag daarop!"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "30-03-2025 20:55",
+        "tekst": "Voor zulk soort kleine klusjes reken ik contact €35/uur"
+      },
+      {
+        "rol": "klant",
+        "tijd": "30-03-2025 21:11",
+        "tekst": "Ooo wat leuk! Maar vrijdag of het weekend is ook prima hoor. Het zijn best wel veel klusjes, ongeveer 7 lampen, 5 gordijnrails en wat plankjes en schilderijen aan de muur hangen. Is dat ok? Vrijdag zou top zijn :)"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "30-03-2025 22:00",
+        "tekst": "Ow Super! Dat zijn veel lampen haha \nAanstaande vrijdag is top, vanaf hoe laat ben ik welkom? Ik begin het liefst zo vroeg mogelijk"
+      },
+      {
+        "rol": "klant",
+        "tijd": "30-03-2025 22:32",
+        "tekst": "Hahaa ja het is een nieuwbouw appartement aan de [STRAAT], volgens mij ben je hier al geweest"
+      },
+      {
+        "rol": "klant",
+        "tijd": "30-03-2025 22:32",
+        "tekst": "Ik kan vrijdag pas vanaf 10u helaas.. maar als later op de dag je beter uitkomt is het ook prima hoor.m"
+      },
+      {
+        "rol": "klant",
+        "tijd": "30-03-2025 22:33",
+        "tekst": "Heb je van te voren nog meer informatie nodig over wat voor lampen en klussen precies of komt dat wel vrijdag?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "30-03-2025 22:54",
+        "tekst": "Ow wat vet, gefeliciteerd! 😄\nJa mijn beste maat woont daar ook nu haha"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "30-03-2025 22:54",
+        "tekst": "Als het daar aanwezige is is het perfect 👍 ik zorg dat ik alles bij mij heb om alles te monteren"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "30-03-2025 22:55",
+        "tekst": "10:00 is goed! 👍👍"
+      }
+    ]
+  },
+  {
+    "id": "prijsbezwaar-terugkerende-klant",
+    "bron": "terugkerende klant",
+    "klus": "klein klusje (1 uur)",
+    "taal": "nl",
+    "uitkomst": "klant ziet af na prijsdiscussie",
+    "les": "Tegenvoorbeeld: prijs na de afspraak genoemd, bij bezwaar direct verlaagd van €80 naar €50, klant haakt toch af. Botregel: niet in discussie, geen korting, onderbouwen en de klant naar de monteur verwijzen.",
+    "berichten": [
+      {
+        "rol": "klant",
+        "tijd": "10-05-2026 15:53",
+        "tekst": "Heb je binnenkort nog tijd?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "10-05-2026 15:59",
+        "tekst": "hee [KLANT]! ja zeker!\nIk heb binennkort zeker tijd 👌🏻 ik heb sinds kort ook door de weeks tijd, vanaf woensdag tot zondag ben ik erg flexiebel! zeg maar wat jou het beste uitkomt"
+      },
+      {
+        "rol": "klant",
+        "tijd": "10-05-2026 16:11",
+        "tekst": "Yeay, dankje! Zou je donderdag kunnen ergens na 12?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "10-05-2026 16:11",
+        "tekst": "Is Max een uurtje werk denk ik"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "10-05-2026 18:57",
+        "tekst": "suuuper, donderdag klinkt goed! :) \nna 12 als in, 4 uur is ook top?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "10-05-2026 19:27",
+        "tekst": "zou 80 euro oké zijn voor jou?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "10-05-2026 21:29",
+        "tekst": "Ooee is wel een stuk meer dan de €35 die je vorig jaar vroeg.. snap het helemaal hoor als je je prijzen hebt verhoogd of voor een kortere tijd, maar dan gaan we denk ik wel een andere oplossing zoeken"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "10-05-2026 21:31",
+        "tekst": "hmm ja, mss wel. anders kan ik ook wel 50 euro doen? \nhet verschil is dat ik het dit keer aan chatGPT heb gevraagd haha🫣"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "10-05-2026 21:31",
+        "tekst": "[foto]"
+      },
+      {
+        "rol": "klant",
+        "tijd": "11-05-2026 16:39",
+        "tekst": "Hahaa slim.. en waarschijnlijk ook gewoon realistisch. Maar daardoor bedacht ik me ook dat het echt puur gemakzucht is voor deze paar kleine dingetjes en we het eigenlijk ook echt wel zelf kunnen doen 🫣"
+      },
+      {
+        "rol": "klant",
+        "tijd": "11-05-2026 16:39",
+        "tekst": "Dus sorry en dankjewel! Wanneer we weer echt wat meer en ‘serieuzer’ dingen hebben vraag ik het je zeker weer"
+      }
+    ]
+  },
+  {
+    "id": "b2b-keukenverkoper-partner",
+    "bron": "keukenverkoper (B2B)",
+    "klus": "tweedehands keukens demonteren/leveren voor een handelaar",
+    "taal": "nl",
+    "uitkomst": "geen vaste afspraak, wel doorverwijzingen",
+    "les": "Geen consument maar een handelaar die partner zoekt. Bot herkent dit en draagt direct over aan de monteur.",
+    "berichten": [
+      {
+        "rol": "klant",
+        "tijd": "21-05-2026 21:16",
+        "tekst": "Monteert uw tweedehandse keukens?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "21-05-2026 21:16",
+        "tekst": "[foto]"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "21-05-2026 23:44",
+        "tekst": "Inderdaad! Heeft u er al een op het oog?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-05-2026 21:11",
+        "tekst": "Ja voor montage ?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-05-2026 21:12",
+        "tekst": "Kan ik ze naar u doorsturen? En wat vraagt u per meter"
+      },
+      {
+        "rol": "klant",
+        "tijd": "22-05-2026 21:12",
+        "tekst": "Uw factureert zelf ?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "22-05-2026 21:13",
+        "tekst": "Natuurlijk!"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "22-05-2026 21:14",
+        "tekst": "Ik reken €45/uur. Moet de tweedehands keuken ook nog gedemonteerd worden en geleverd?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "23-06-2026 13:17",
+        "tekst": "Per uur ? Is dit inclusief demontage en levering"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "23-06-2026 15:08",
+        "tekst": "Excuus, dat was mijn broekzak"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "23-06-2026 15:10",
+        "tekst": "Alle arbeid reken ik €45/uur. Enkel voor het vervoeren per vrachtwagen van de keuken kost het €30/uur"
+      },
+      {
+        "rol": "klant",
+        "tijd": "23-06-2026 15:16",
+        "tekst": "Ah nee u vraagt te veel helaas , momenteel werkt er iemand voor een vaste prijs demontage inclusief levering op dezelfde dag, dus demonteren, keuken inladen en direct afleveren dit tussen de €500 en €710"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "23-06-2026 15:16",
+        "tekst": "Hmm, ik denk dat ik daar ook wel op uit kom"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "23-06-2026 15:17",
+        "tekst": "Tenzij het een erg luxe keuken is"
+      },
+      {
+        "rol": "klant",
+        "tijd": "23-06-2026 15:22",
+        "tekst": "Zoals dit bijvoorbeeld"
+      },
+      {
+        "rol": "klant",
+        "tijd": "23-06-2026 15:23",
+        "tekst": "[4 foto's]"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "23-06-2026 15:24",
+        "tekst": "Laten we zeggen een lange dag van 11 uur werken : €495"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "23-06-2026 15:25",
+        "tekst": "+ huur van transport 495+120=615 totaal"
+      },
+      {
+        "rol": "klant",
+        "tijd": "23-06-2026 15:26",
+        "tekst": "Is dit inclusief levering uiteraard, want enkel demontage daar hebben wij niets aan, het gaat erom dat je de opdracht krijgt om te demonteren deze keuken in te laden en af te leveren bij onze klant"
+      },
+      {
+        "rol": "klant",
+        "tijd": "23-06-2026 15:26",
+        "tekst": "Werk je in Nederland enkel, stel dat je in Nederland moet demonteren en leveren in België, kan dat of levering enkel in België, is werken door heel Nederland mogelijk of werk je enkel regiogebonden"
+      },
+      {
+        "rol": "klant",
+        "tijd": "23-06-2026 15:26",
+        "tekst": "Ik heb het nu even over demonteren,, dus niet montage"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "23-06-2026 15:28",
+        "tekst": "Ah, \nIk heb het liefst demontage, vervoeren en montage. Omdat ik een monteur ben en geen vervoespecislist. Ik doe het wel, en goed, maar vooral om de montage daarna te mogen doen. Is dat iets waar je naar opzoek bent?"
+      },
+      {
+        "rol": "klant",
+        "tijd": "23-06-2026 15:32",
+        "tekst": "Ja, dat is geen probleem, maar als iemand een keuken bij ons aankoopt, dan zoeken ze meestal ook meteen montage, het is alleen wel een probleem dat ik de prijzen niet weet, vandaar dat ik heb gevraagd of ik jouw gegevens ook op onze website kan plaatsen, voor montage? Dat je dan\nautomatisch een mail krijgt als iemand een keuken heeft aangekocht, en dat er een offerte wordt uitgebracht voor montage? Dan kan ik u aansluiten als onze partner."
+      },
+      {
+        "rol": "monteur",
+        "tijd": "23-06-2026 15:33",
+        "tekst": "Ah, maar het is zwaar afhankelijk van de type keuken"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "23-06-2026 15:33",
+        "tekst": "Ik heb wel een calculator op mijn website die u kunt gebruiken"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "23-06-2026 15:34",
+        "tekst": "Dat is rotterdam-keukenmontage.nl \nDan kan je een gratis offerte aanvragen 👍🏻"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "23-06-2026 15:35",
+        "tekst": "En als u vaker klussen heeft kan ik er misschien wel tot 25% af halen van de prijs"
+      },
+      {
+        "rol": "klant",
+        "tijd": "23-06-2026 15:36",
+        "tekst": "Top"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "23-06-2026 15:36",
+        "tekst": "Als je ergens tegenaan loopt laat het mij weten, dan kan ik het proces daarop aanpassen"
+      },
+      {
+        "rol": "klant",
+        "tijd": "23-06-2026 15:36",
+        "tekst": "Is dit ook uw bedrijfsnaam?"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "23-06-2026 15:37",
+        "tekst": "Yes"
+      },
+      {
+        "rol": "klant",
+        "tijd": "23-06-2026 15:37",
+        "tekst": "Oké helemaal goed , hier kunnen we wat mee"
+      },
+      {
+        "rol": "monteur",
+        "tijd": "23-06-2026 15:37",
+        "tekst": "Super"
+      },
+      {
+        "rol": "klant",
+        "tijd": "23-06-2026 15:37",
+        "tekst": "En betreft demontage , ziet u dat zitten, of wenst u enkel montage te doen"
+      }
+    ]
+  }
+]

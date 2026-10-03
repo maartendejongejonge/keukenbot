@@ -122,7 +122,7 @@ export async function bezetting(
 // --------------------------------------------------------------- schrijven
 
 export interface AfspraakGegevens {
-  soort: 'inmeting' | 'montage';
+  soort: 'inmeting' | 'montage' | 'klusje';
   start: Date;
   eind: Date;
   klantNaam?: string;
@@ -144,6 +144,8 @@ export async function vastleggen(
   const titel =
     a.soort === 'inmeting'
       ? `Inmeting${a.klantNaam ? ` — ${a.klantNaam}` : ''}`
+      : a.soort === 'klusje'
+      ? `Klusje${a.klantNaam ? ` — ${a.klantNaam}` : ''}`
       : `Keukenmontage${a.klantNaam ? ` — ${a.klantNaam}` : ''}`;
 
   const omschrijving = [

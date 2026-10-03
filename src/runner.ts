@@ -18,6 +18,7 @@ import { formuleerVoorstel, vervaltOp } from './planner.js';
 import { CONFIDENCE_DREMPEL, systeemprompt, type Kwalificatie, type PrijsContext } from './kwalificatie.js';
 import { keuzePrompt, leesKeuze, omschrijfSlot, snelleKeuze, type KeuzeUitkomst } from './keuze.js';
 import { mediaNaarTekst } from './media.js';
+import { duidBericht } from './model.js';
 import { prijsOpbouw, prijzenActief, type PrijsProfiel, type Prijsindicatie, type Uurnormen } from './prijs.js';
 import { bezetting as agendaBezetting, vastleggen, type GoogleKoppeling } from './agenda.js';
 import { overnachtingsAdvies, reis, samenvatting, type ReisProfiel } from './reiskosten.js';
@@ -300,7 +301,7 @@ async function behandelKeuze(b: InkomendBericht, lead: any, profiel: any, open: 
   await bewaarKlantbericht(lead.id, b.tekst);
 
   const slots = open.map((a) => ({
-    soort: a.soort as 'inmeting' | 'montage',
+    soort: a.soort as 'inmeting' | 'montage' | 'klusje',
     start: new Date(a.start_op),
     dagen: a.soort === 'montage' ? werkdagenVan(lead) : undefined,
   }));
@@ -448,6 +449,8 @@ async function bevestig(b: InkomendBericht, lead: any, profiel: any, gekozen: an
     gekozen.soort === 'montage'
       ? `Genoteerd: de montage begint ${omschrijfSlot({ soort: 'inmeting', start }).split(' om ')[0]}${duur}. ` +
         `${naam} neemt vooraf contact met u op over de laatste details. Wilt u het adres nog sturen?`
+      : gekozen.soort === 'klusje'
+      ? `Genoteerd: ${naam} komt ${omschrijfSlot({ soort: 'inmeting', start })} langs. Wilt u het adres nog sturen?`
       : `Genoteerd: ${naam} komt ${omschrijfSlot({ soort: 'inmeting', start })} inmeten. Wilt u het adres nog sturen?`;
 
   await naarKlant(b.vanNummer, tekst, lead.id, monteurId, 'bevestiging');
@@ -651,7 +654,7 @@ async function vindOfMaakLead(monteurId: string, kanaalId: string, nummer: strin
 const LEAD_VELDEN = [
   'pc4', 'plaats', 'type_klus', 'leverancier', 'omvang', 'installatiewerk',
   'keuken_geleverd', 'gewenste_periode', 'verdieping', 'lift', 'leverdatum',
-  'werkblad_door', 'ingemeten', 'zakelijk', 'klant_naam',
+  'werkblad_door', 'ingemeten', 'zakelijk', 'klant_naam', 'klusjes', 'klusje_uren',
 ] as const;
 
 function pakKwalificatie(lead: any): Kwalificatie {
@@ -718,56 +721,6 @@ async function historie(leadId: string) {
     .order('verzonden_op', { ascending: true })
     .limit(20);
   return (data ?? []) as { afzender: 'klant' | 'bot' | 'monteur'; tekst: string }[];
-}
-
-async function duidBericht(
-  systeem: string,
-  hist: { afzender: string; tekst: string }[],
-  bericht: string,
-) {
-  // De Messages API wil afwisselend user/assistant. Berichten van de monteur
-  // zelf tellen als assistant; opeenvolgende gelijke rollen worden samengevoegd.
-  const berichten: { role: 'user' | 'assistant'; content: string }[] = [];
-  for (const h of [...hist, { afzender: 'klant', tekst: bericht }]) {
-    const role = h.afzender === 'klant' ? 'user' : 'assistant';
-    const vorige = berichten[berichten.length - 1];
-    if (vorige?.role === role) vorige.content += `\n\n${h.tekst}`;
-    else berichten.push({ role, content: h.tekst });
-  }
-  if (berichten[0]?.role === 'assistant') berichten.shift();
-
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': env('ANTHROPIC_API_KEY'),
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6',
-      max_tokens: 1200,
-      system: systeem,
-      messages: berichten,
-    }),
-  });
-
-  const data = await res.json();
-  const tekst = (data.content ?? [])
-    .filter((b: any) => b.type === 'text')
-    .map((b: any) => b.text)
-    .join('')
-    .replace(/```json|```/g, '')
-    .trim();
-
-  if (!res.ok) console.error('Anthropic:', res.status, data?.error?.message ?? '');
-
-  try {
-    // Soms zet het model er toch een zin voor of na; pak het JSON-deel.
-    return JSON.parse(tekst.slice(tekst.indexOf('{'), tekst.lastIndexOf('}') + 1));
-  } catch {
-    // Onparseerbaar antwoord is per definitie onbetrouwbaar.
-    return { velden: {}, antwoord: '', confidence: 0 };
-  }
 }
 
 // ------------------------------------------------------------------ afsluiten

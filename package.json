@@ -8,7 +8,8 @@
     "start": "node dist/runner.js",
     "check": "node dist/check.js",
     "koppel-agenda": "node scripts/koppel-agenda.mjs",
-    "test:prijs": "node dist/prijs.test.js"
+    "test:prijs": "node dist/prijs.test.js",
+    "test:gesprekken": "node dist/gesprekken.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",
