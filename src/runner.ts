@@ -244,7 +244,10 @@ async function behandel(b: InkomendBericht) {
     }
 
     case 'overdracht': {
-      await draagOver(lead.id, monteurId, b.vanNummer, profiel, besluit.reden, besluit.samenvatting, besluit.concept);
+      await draagOver(
+        lead.id, monteurId, b.vanNummer, profiel, besluit.reden, besluit.samenvatting, besluit.concept,
+        besluit.klanttekst || undefined,
+      );
       break;
     }
   }
@@ -363,6 +366,18 @@ async function behandelKeuze(b: InkomendBericht, lead: any, profiel: any, open: 
     return;
   }
 
+  // Kan de klant het bedrag niet betalen: reserveringen vrijgeven en naar de monteur.
+  if (uit.signaal === 'budget') {
+    await db.from('afspraken').update({ status: 'geannuleerd' }).eq('lead_id', lead.id).eq('status', 'voorlopig');
+    await draagOver(
+      lead.id, monteurId, b.vanNummer, profiel, 'prijsvraag',
+      `Klant kan het bedrag niet betalen (bij het kiezen van een moment). Laatste bericht: "${b.tekst.slice(0, 500)}"`,
+      undefined,
+      uit.antwoord.trim() || undefined,
+    );
+    return;
+  }
+
   // Een vraag tussendoor: zelf beantwoorden. Twijfel = seintje, geen overdracht.
   const tekst = uit.antwoord.trim() || 'Welk moment past u het beste? Een nummer sturen is genoeg.';
   await naarKlant(b.vanNummer, tekst, lead.id, monteurId, 'vervolgvraag');
@@ -379,6 +394,7 @@ const SEINTJE_UITLEG: Record<Signaal, string> = {
   wil_monteur: 'Klant vraagt naar jou. De bot heeft gezegd dat je contact opneemt zodra de datum staat.',
   twijfel: 'De bot twijfelde over zijn antwoord. Kijk even mee.',
   extra_werk: 'Werk zonder vaste prijs; de bot heeft gezegd dat jij het apart in de offerte zet.',
+  budget: 'Klant kan het bedrag niet betalen. Het gesprek is aan jou overgedragen.',
 };
 
 /** Seintje aan de monteur. Het gesprek blijft bij de bot. */
@@ -654,7 +670,7 @@ async function vindOfMaakLead(monteurId: string, kanaalId: string, nummer: strin
 const LEAD_VELDEN = [
   'pc4', 'plaats', 'type_klus', 'leverancier', 'omvang', 'installatiewerk',
   'keuken_geleverd', 'gewenste_periode', 'verdieping', 'lift', 'leverdatum',
-  'werkblad_door', 'ingemeten', 'zakelijk', 'klant_naam', 'klusjes', 'klusje_uren',
+  'werkblad_door', 'ingemeten', 'zakelijk', 'klant_naam', 'klusjes', 'klusje_uren', 'tweedehands',
 ] as const;
 
 function pakKwalificatie(lead: any): Kwalificatie {

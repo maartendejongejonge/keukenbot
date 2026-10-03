@@ -30,7 +30,7 @@ import { Bezetting, PlannerProfiel, Slot, SlotSoort, formuleerVoorstel, vervaltO
 import { berekenPrijs, prijsTekst, type PrijsProfiel, type Prijsindicatie, type Werk } from './prijs.js';
 
 /** Seintje aan de monteur. Het gesprek blijft bij de bot. */
-export type Signaal = 'prijsbezwaar' | 'prijsvraag' | 'klacht' | 'wil_monteur' | 'twijfel' | 'extra_werk';
+export type Signaal = 'prijsbezwaar' | 'prijsvraag' | 'klacht' | 'wil_monteur' | 'twijfel' | 'extra_werk' | 'budget';
 
 export type Besluit =
   | {
@@ -53,7 +53,15 @@ export type Besluit =
       extraWerk?: string[];
     }
   /** Alleen nog als de bot echt niet verder kan: geen vrije datum te vinden. */
-  | { soort: 'overdracht'; reden: OverdrachtReden; samenvatting: string; concept?: string; kwalificatie?: Kwalificatie };
+  | {
+      soort: 'overdracht';
+      reden: OverdrachtReden;
+      samenvatting: string;
+      concept?: string;
+      kwalificatie?: Kwalificatie;
+      /** wat de klant te zien krijgt; leeg = standaardtekst van de runner */
+      klanttekst?: string;
+    };
 
 export interface LeadContext {
   kwalificatie: Kwalificatie;
@@ -84,7 +92,7 @@ export interface Afhankelijkheden {
   bezetting(vanaf: Date, dagen: number): Promise<Bezetting[]>;
 }
 
-const SIGNALEN: Signaal[] = ['prijsbezwaar', 'prijsvraag', 'klacht', 'wil_monteur', 'twijfel', 'extra_werk'];
+const SIGNALEN: Signaal[] = ['prijsbezwaar', 'prijsvraag', 'klacht', 'wil_monteur', 'twijfel', 'extra_werk', 'budget'];
 
 export async function verwerkBericht(
   bericht: string,
@@ -101,7 +109,7 @@ export async function verwerkBericht(
   const systeem =
     systeemprompt(profiel, prijsCtx) +
     '\n\n' +
-    antwoordFormaat(prijzen, ontbrekendeVelden(voorlopig, prijzen));
+    antwoordFormaat(prijzen, ontbrekendeVelden(voorlopig, prijzen), voorlopig);
 
   const uit = await deps.duidBericht(systeem, ctx.historie, bericht);
   const kwalificatie = samenvoegen(ctx.kwalificatie, uit.velden);
@@ -127,6 +135,21 @@ export async function verwerkBericht(
     } else {
       antwoord = terugval;
     }
+  }
+
+  // De klant kan het bedrag echt niet betalen: naar de monteur, de bot
+  // onderhandelt niet. Afgesproken met Maarten op 03-10-2026.
+  if (signalen.has('budget')) {
+    return {
+      soort: 'overdracht',
+      reden: 'prijsvraag',
+      samenvatting: `Klant kan het bedrag niet betalen. ${vatSamen({ ...ctx, kwalificatie }, bericht, 'budget te laag')}`,
+      concept: ctx.prijsGegeven
+        ? `Gegeven indicatie: € ${ctx.prijsGegeven.min} – € ${ctx.prijsGegeven.max}`
+        : undefined,
+      kwalificatie,
+      klanttekst: antwoord,
+    };
   }
 
   // Filter draait zodra er genoeg bekend is — niet pas aan het eind.
@@ -266,6 +289,9 @@ function hoofdletter(s: string): string {
 function terugvalVraag(k: Kwalificatie, prijzen: boolean): string {
   const v = volgendVeld({ type_klus: 'montage', ...k }, prijzen);
   if (!v) return 'Dank u. Ik zoek een paar momenten voor u uit.';
+  if (v === 'werk' && k.tweedehands) {
+    return "Kunt u foto's sturen van de keuken zoals hij nu staat, van alle kanten? Dan kan ik u een prijs en een montagedatum geven.";
+  }
   if (v === 'werk') {
     return 'Kunt u de onderdelenlijst of orderbevestiging van de keuken sturen, als foto of PDF? Dan kan ik u een prijs en een montagedatum geven.';
   }

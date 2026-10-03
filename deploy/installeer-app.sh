@@ -60,7 +60,7 @@ cat <<EOF
 Klaar. Volgende stappen:
 
   1. Controleer de koppelingen:
-       cd $MAP && sudo -u $GEBRUIKER npm run check
+       sudo -u $GEBRUIKER -H bash -c 'cd $MAP && npm run check'
 
   2. Als alles groen is, start de bot en kijk mee:
        sudo systemctl start keukenbot

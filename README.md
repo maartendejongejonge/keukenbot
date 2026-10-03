@@ -110,6 +110,25 @@ meer werk naar verhouding tijd bijkomt. De bot vraagt wat, waar en wanneer,
 schat de duur in voor de planning (minimaal 2, maximaal 8 uur) en stelt drie
 momenten voor. In de agenda heet zo'n afspraak "Klusje".
 
+## Tweedehands, transport en budget (besloten 03-10-2026)
+
+- **Bouwpakket of voorgemonteerd** vraagt de bot bijna nooit: IKEA is een
+  bouwpakket (tenzij de klant de kasten zelf in elkaar zet), Nobilia en
+  andere nieuwe keukens van een keukenzaak komen voorgemonteerd.
+- **Tweedehands keukens** hebben geen onderdelenlijst. De bot vraagt foto's
+  van de keuken zoals hij nu staat, telt de kasten (of vraagt het aantal),
+  en vraagt of demontage bij de verkoper en vervoer erbij moeten. Die gaan
+  als werk zonder uurnorm apart in de offerte.
+- **Transport** (`transport` in het profiel): de bot mag noemen dat vervoer
+  € 200 autohuur plus € 85 per uur kost. Verticaal transport kan geregeld
+  worden via een andere partij; die kosten zijn voor de klant en de bot noemt
+  geen bedrag.
+- **Budget te laag**: kan de klant het bedrag echt niet betalen, dan
+  onderhandelt de bot niet maar zegt hij dat hij het doorgeeft, en gaat het
+  gesprek naar de monteur (signaal `budget`, ook tijdens het kiezen van een
+  moment). Gewoon "het is duur" blijft een prijsbezwaar waar de bot zelf op
+  antwoordt.
+
 ## Gesprekstest
 
 `test/voorbeeldgesprekken.json` bevat 11 echte, geanonimiseerde
@@ -118,7 +137,7 @@ echte prompt en het echte profiel, met een lege agenda, zonder iets te
 versturen of op te slaan:
 
 ```bash
-cd /opt/keukenbot && sudo -u keukenbot npm run test:gesprekken
+sudo -u keukenbot -H bash -c 'cd /opt/keukenbot && npm run test:gesprekken'
 ```
 
 De uitslag staat daarna in `test/uitslag.md`: per beurt wat de bot zegt,
@@ -150,6 +169,7 @@ besluitvorming. Wat nog ontbreekt is het proces dat alles aan elkaar knoopt.
 | Bot zwijgt na overdracht of inplannen | af (02-10-2026) |
 | Klusjes tegen hoog tarief | af (03-10-2026), alleen aan voor Rotterdam Keukenmontage |
 | Gesprekstest met echte gesprekken | af (03-10-2026) |
+| Tweedehands, transport, budget naar monteur | af (03-10-2026) |
 | Webinterface voor monteurs | nog te doen |
 
 ## De bestanden
@@ -188,7 +208,7 @@ Inloggen als je eigen gebruiker (niet `keukenbot`, die heeft geen sudo):
 ssh maartendejonge24@149.210.205.238
 cd ~/keukenbot && git pull
 sudo bash deploy/installeer-app.sh
-cd /opt/keukenbot && sudo -u keukenbot npm run check
+sudo -u keukenbot -H bash -c 'cd /opt/keukenbot && npm run check'
 sudo systemctl start keukenbot
 journalctl -u keukenbot -f
 ```

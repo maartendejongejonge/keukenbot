@@ -78,8 +78,10 @@ Bepaal wat de klant met zijn bericht bedoelt.
 
 Antwoord uitsluitend met JSON, zonder toelichting of code-fences:
 {"keuze":null,"geen_past":false,"vanaf":null,"antwoord":"","confidence":0.0,"signaal":null}
-"signaal" = null, of "prijsbezwaar", "klacht", "wil_monteur" of "twijfel"
-  (alleen een seintje aan de monteur; jij blijft het gesprek voeren).`;
+"signaal" = null, of "prijsbezwaar", "klacht", "wil_monteur", "twijfel" of
+  "budget" (alleen een seintje aan de monteur; jij blijft het gesprek voeren,
+  behalve bij "budget": de klant kan het bedrag echt niet betalen, dan zeg je
+  kort dat je het doorgeeft en neemt de monteur het over).`;
 }
 
 export function leesKeuze(ruw: any, aantal: number): KeuzeUitkomst {

@@ -29,8 +29,8 @@ Schrijf in het Nederlands een zakelijke, volledige samenvatting van alles wat re
 Gebruik deze kopjes (laat een kopje weg als er niets over staat):
 Soort bestand:
 Merk/leverancier:
-Levering: bouwpakket of voorgemonteerd, als dat te zien is
-Kasten: aantallen onderkasten, hangkasten, hoge kasten, hoekkasten, ladeblokken, met breedtes als die er staan
+Levering: bouwpakket of voorgemonteerd. IKEA is een bouwpakket; Nobilia en andere nieuwe keukens van een keukenzaak komen voorgemonteerd. Een bestaande of tweedehands keuken op een foto staat al in elkaar.
+Kasten: aantallen onderkasten, hangkasten, hoge kasten, hoekkasten, ladeblokken, met breedtes als die er staan. Op een foto van een bestaande keuken: tel de kasten die je ziet en zeg erbij dat het een telling van de foto is
 Lopende meters / opstelling: recht, L, U, eiland, totale lengte
 Werkblad: materiaal, maten, aantal delen, uitsparingen (kookplaat, spoelbak, kraangaten), wie het plaatst
 Apparatuur: elk apparaat apart (kookplaat met type/aansluitwaarde, oven, magnetron, vaatwasser, koelkast, afzuigkap, Quooker enz.)
