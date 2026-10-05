@@ -14,6 +14,9 @@
  * Dit draait op een kleine VPS (TransIP).
  */
 
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+
 export interface InkomendBericht {
   kanaalSleutel: string;   // phone_number_id (Cloud API) of eigen nummer (Baileys)
   vanNummer: string;
@@ -34,6 +37,8 @@ export interface Transport {
   naam: 'baileys' | 'cloud_api';
   start(onBericht: (b: InkomendBericht) => Promise<void>): Promise<void>;
   stuur(naar: string, tekst: string): Promise<void>;
+  /** Wordt vervuld zodra de verbinding de eerste keer open is. */
+  verbonden(): Promise<void>;
   stop(): Promise<void>;
 }
 
@@ -54,6 +59,8 @@ export function baileysTransport(opts: {
   logger?: (m: string) => void;
 }): Transport {
   let sock: any;
+  let meldVerbonden!: () => void;
+  const verbondenBelofte = new Promise<void>((r) => (meldVerbonden = r));
   const log = opts.logger ?? ((m: string) => console.log(`[baileys] ${m}`));
 
   // Deze drie overleven een herverbinding (ze staan buiten start()).
@@ -63,7 +70,10 @@ export function baileysTransport(opts: {
   //    dan kan de telefoon van de klant het bericht niet ontsleutelen en ziet
   //    hij "Wachten op dit bericht". Dus: altijd terugschrijven naar het adres
   //    waar het bericht vandaan kwam.
-  const adresVan = new Map<string, string>();
+  //    Bewaard in authDir, zodat het een herstart overleeft (anders gaat een
+  //    bericht na een update naar het verkeerde adres).
+  const adressenBestand = join(opts.authDir, 'adressen.json');
+  const adresVan = new Map<string, string>(leesAdressen(adressenBestand));
   // 2. Verstuurde berichten, zodat een telefoon die een bericht niet kon
   //    ontsleutelen het opnieuw kan opvragen (getMessage).
   const verstuurd = new Map<string, unknown>();
@@ -108,7 +118,10 @@ export function baileysTransport(opts: {
       }
 
       sock.ev.on('connection.update', (u: any) => {
-        if (u.connection === 'open') log('verbonden');
+        if (u.connection === 'open') {
+          log('verbonden');
+          meldVerbonden();
+        }
         if (u.connection === 'close') {
           const code = u.lastDisconnect?.error?.output?.statusCode;
           if (code === DisconnectReason.loggedOut) {
@@ -165,7 +178,10 @@ export function baileysTransport(opts: {
           const vanNummer = (m.key.senderPn ?? jid)
             .replace(/@s\.whatsapp\.net$/, '')
             .replace(/:\d+$/, '');
-          adresVan.set(vanNummer, jid);
+          if (adresVan.get(vanNummer) !== jid) {
+            adresVan.set(vanNummer, jid);
+            bewaarAdressen(adressenBestand, adresVan);
+          }
           log(`bericht van ${vanNummer} via ${jid}${media ? ` (${media.soort})` : ''}`);
 
           try {
@@ -200,10 +216,30 @@ export function baileysTransport(opts: {
       }
     },
 
+    verbonden() {
+      return verbondenBelofte;
+    },
+
     async stop() {
       await sock?.end?.();
     },
   };
+}
+
+function leesAdressen(bestand: string): [string, string][] {
+  try {
+    return Object.entries(JSON.parse(readFileSync(bestand, 'utf8')) as Record<string, string>);
+  } catch {
+    return [];
+  }
+}
+
+function bewaarAdressen(bestand: string, m: Map<string, string>) {
+  try {
+    writeFileSync(bestand, JSON.stringify(Object.fromEntries(m)));
+  } catch (e) {
+    console.error(`[baileys] adressen bewaren mislukt: ${String(e)}`);
+  }
 }
 
 /** Eenvoudige cache volgens Baileys' CacheStore-vorm, zonder extra pakket. */

@@ -146,6 +146,26 @@ elke wijziging aan de prompt.
 
 Offertes, meerwerk en facturen komen later. Eerst moet dit ene ding goed werken.
 
+## Stresstest met vrienden (05-10-2026)
+
+De nummers van de testers staan in `TESTNUMMERS` in `/opt/keukenbot/.env`
+(komma's ertussen, 06-nummers mogen). Niet in de code: deze repo is openbaar.
+Voor die nummers wijkt de bot op vier punten af van een echte klant:
+
+- **`reset`** (alleen dat woord) wist het gesprek en de reserveringen; de
+  tester kan opnieuw beginnen als nieuwe klant.
+- **Na inplannen of overdracht** zwijgt de bot niet, maar meldt hij dat het
+  gesprek is afgerond en behandelt hij het volgende bericht als nieuwe aanvraag.
+- **Afspraken** komen in Google Agenda met `[TEST]` voor de titel, in grafiet.
+  Die blijven staan tot je ze zelf weggooit (ze houden dat moment bezet).
+- **Na een update** krijgt elke tester: "De keukenbot is geüpdatet en
+  verbeterd. U kunt mij nu als testpersoon opnieuw stresstesten." Hun oude
+  gesprekken worden daarbij gewist. Dat gebeurt alleen als de git-versie anders
+  is dan bij de vorige melding (`laatste-testmelding.txt`), dus niet bij een
+  gewone herstart. Jij krijgt een bevestiging met het versienummer.
+
+Seintjes en meldingen aan de monteur blijven zoals bij een echte klant.
+
 ## Waar we nu staan
 
 Het skelet is er: datamodel, kwalificatielogica, agendaregels en de
@@ -190,6 +210,7 @@ src/reiskosten.ts                   afstand, rijtijd en reiskosten per postcode
 src/agenda.ts                       Google Agenda lezen en schrijven
 src/orchestrator.ts                 bericht in → antwoord, afwijzing, voorstel of overdracht
 src/transport.ts                    WhatsApp-verbinding (Baileys), achter één interface
+src/testers.ts                      testnummers, reset en updatebericht voor de stresstest
 supabase/migrations/                datamodel, per monteur gescheiden
 scripts/koppel-agenda.mjs           eenmalig een agenda koppelen (op je laptop)
 deploy/setup-vps.sh                 een verse server inrichten (één keer)

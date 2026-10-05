@@ -23,6 +23,10 @@ import { prijsOpbouw, prijzenActief, type PrijsProfiel, type Prijsindicatie, typ
 import { bezetting as agendaBezetting, vastleggen, type GoogleKoppeling } from './agenda.js';
 import { overnachtingsAdvies, reis, samenvatting, type ReisProfiel } from './reiskosten.js';
 import type { Bezetting } from './planner.js';
+import {
+  NIEUW_GESPREK_TEKST, RESET_TEKST, UPDATE_TEKST,
+  huidigeVersie, isReset, laatstGemeld, leesTestnummers, normaliseerNummer, onthoudGemeld,
+} from './testers.js';
 
 const env = (naam: string, verplicht = true): string => {
   const v = process.env[naam];
@@ -43,6 +47,11 @@ const AUTH_DIR = process.env.AUTH_DIR ?? '/opt/keukenbot/auth';
  * zoveel seconden na het laatste bericht en beantwoordt ze dan in één keer.
  */
 const BUNDEL_MS = Number(process.env.BUNDEL_SECONDEN ?? 15) * 1000;
+/** Vrienden die de bot stresstesten (zie testers.ts). */
+const TESTNUMMERS = leesTestnummers(process.env.TESTNUMMERS);
+const isTester = (nummer: string) => TESTNUMMERS.has(normaliseerNummer(nummer));
+/** Welke versie de testers het laatst een updatebericht over kregen. */
+const VERSIE_BESTAND = process.env.VERSIE_BESTAND ?? '/opt/keukenbot/laatste-testmelding.txt';
 
 const db = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'));
 
@@ -62,8 +71,12 @@ const transport = baileysTransport({
 
 async function start() {
   console.log(`Keukenbot start — ${MEELEZEN ? 'MEELEESMODUS (klant krijgt niets)' : 'LIVE'}`);
+  if (TESTNUMMERS.size) console.log(`${TESTNUMMERS.size} testnummer(s) actief`);
 
   await transport.start(ontvang);
+
+  // Niet afwachten: het updatebericht wacht zelf op de verbinding.
+  meldUpdate().catch((e) => console.error('updatebericht mislukt:', String(e)));
 
   // Verlopen reserveringen opruimen: elk kwartier.
   setInterval(ruimOp, 15 * 60 * 1000);
@@ -81,8 +94,20 @@ const wachtrij = new Map<string, { b: InkomendBericht; delen: Promise<string>[];
 async function ontvang(b: InkomendBericht) {
   if (b.vanNummer === MONTEUR_WHATSAPP) return;
 
-  const deel = b.media ? mediaNaarTekst(b.media, b.tekst) : Promise.resolve(b.tekst);
   const sleutel = `${b.kanaalSleutel}|${b.vanNummer}`;
+
+  // Een tester stuurt 'reset': gesprek wissen, niets naar het model.
+  if (!b.media && isReset(b.tekst) && isTester(b.vanNummer)) {
+    const wachtend = wachtrij.get(sleutel);
+    if (wachtend) clearTimeout(wachtend.timer);
+    wachtrij.delete(sleutel);
+    await wisGesprek(b.vanNummer);
+    if (!MEELEZEN) await transport.stuur(b.vanNummer, RESET_TEKST);
+    console.log(`testgesprek ${b.vanNummer} gewist (reset)`);
+    return;
+  }
+
+  const deel = b.media ? mediaNaarTekst(b.media, b.tekst) : Promise.resolve(b.tekst);
   const bestaand = wachtrij.get(sleutel);
   if (bestaand) clearTimeout(bestaand.timer);
 
@@ -131,7 +156,15 @@ async function behandel(b: InkomendBericht) {
   if (!profielRij) return;
   const profiel = { ...profielRij, bedrijfsnaam: (profielRij as any).monteurs?.bedrijfsnaam ?? null };
 
-  const lead = await vindOfMaakLead(monteurId, kanaal.data.id, b.vanNummer);
+  let lead = await vindOfMaakLead(monteurId, kanaal.data.id, b.vanNummer);
+
+  // Een tester na inplannen of overdracht: niet zwijgen, maar opnieuw
+  // beginnen. Zo kan hij meteen het volgende scenario spelen.
+  if ((lead.status === 'overgedragen' || lead.status === 'ingepland') && isTester(b.vanNummer)) {
+    await wisGesprek(b.vanNummer);
+    if (!MEELEZEN) await transport.stuur(b.vanNummer, NIEUW_GESPREK_TEKST);
+    lead = await vindOfMaakLead(monteurId, kanaal.data.id, b.vanNummer);
+  }
 
   // Overgedragen of ingepland: de bot zwijgt, de monteur krijgt het bericht.
   if (lead.status === 'overgedragen' || lead.status === 'ingepland') {
@@ -439,6 +472,7 @@ async function bevestig(b: InkomendBericht, lead: any, profiel: any, gekozen: an
         klantTelefoon: b.vanNummer,
         adres: lead.plaats ?? (lead.pc4 ? String(lead.pc4) : undefined),
         notitie: agendaNotitie(lead),
+        test: isTester(b.vanNummer),
       });
     } catch (e) {
       console.error('vastleggen mislukt:', String(e));
@@ -624,6 +658,71 @@ async function bezettingVoor(monteurId: string, vanaf: Date, dagen: number): Pro
     await naarMonteur(`Let op: de agenda is onbereikbaar. ${String(e)}`);
     return eigen;
   }
+}
+
+// ------------------------------------------------------------- testers
+
+const OPEN_STATUSSEN = ['nieuw', 'kwalificeren', 'gekwalificeerd', 'overgedragen', 'ingepland'];
+
+/**
+ * Wist het lopende gesprek van een testnummer: de lead telt als verlopen en
+ * de reserveringen vervallen. Een [TEST]-afspraak in Google blijft staan;
+ * die gooi je zelf weg.
+ */
+async function wisGesprek(nummer: string) {
+  const { data } = await db
+    .from('leads')
+    .select('id')
+    .eq('klant_telefoon', nummer)
+    .in('status', OPEN_STATUSSEN);
+  const ids = (data ?? []).map((l: any) => l.id);
+  if (!ids.length) return;
+
+  await db.from('afspraken').update({ status: 'geannuleerd' })
+    .in('lead_id', ids).in('status', ['voorlopig', 'bevestigd']);
+  await db.from('leads').update({ status: 'verlopen' }).in('id', ids);
+}
+
+/**
+ * Na een update: elke tester een bericht en een schone lei. Alleen als de
+ * code echt veranderd is sinds de vorige melding, dus niet na elke herstart.
+ */
+async function meldUpdate() {
+  if (!TESTNUMMERS.size) return;
+
+  const versie = huidigeVersie();
+  if (!versie) {
+    console.warn('versie onbekend, geen updatebericht naar testers');
+    return;
+  }
+  if (laatstGemeld(VERSIE_BESTAND) === versie) return;
+  if (MEELEZEN) {
+    console.log('meeleesmodus: geen updatebericht naar testers');
+    return;
+  }
+
+  await transport.verbonden();
+  // Even laten bijkomen: vlak na het verbinden synchroniseert WhatsApp nog.
+  await new Promise((r) => setTimeout(r, 10_000));
+
+  let gelukt = 0;
+  for (const nummer of TESTNUMMERS) {
+    try {
+      await wisGesprek(nummer);
+      await transport.stuur(nummer, UPDATE_TEKST);
+      gelukt++;
+    } catch (e) {
+      console.error(`updatebericht naar ${nummer} mislukt:`, String(e));
+    }
+  }
+
+  // Ook bij een gedeeltelijke mislukking onthouden: liever één tester
+  // gemist dan iedereen hetzelfde bericht bij elke herstart.
+  onthoudGemeld(VERSIE_BESTAND, versie);
+  console.log(`updatebericht versie ${versie} naar ${gelukt}/${TESTNUMMERS.size} testers`);
+  await naarMonteur(
+    `Nieuwe versie ${versie} draait. ${gelukt} van ${TESTNUMMERS.size} testers hebben het updatebericht gekregen; hun gesprekken zijn gewist.`,
+  );
 }
 
 async function ruimOp() {

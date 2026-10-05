@@ -23,6 +23,8 @@ const API = 'https://www.googleapis.com/calendar/v3';
  * Andere blauwtinten: 1 = Lavender (lichtpaars), 7 = Peacock (lichtblauw).
  */
 const WERK_KLEUR = '9';
+/** Grafiet: testafspraken vallen meteen op als 'niet echt'. */
+const TEST_KLEUR = '8';
 
 export interface GoogleKoppeling {
   clientId: string;
@@ -129,6 +131,8 @@ export interface AfspraakGegevens {
   klantTelefoon?: string;
   adres?: string;
   notitie?: string;
+  /** Afspraak van een testnummer: [TEST] in de titel en een grijze kleur. */
+  test?: boolean;
 }
 
 /**
@@ -148,7 +152,10 @@ export async function vastleggen(
       ? `Klusje${a.klantNaam ? ` — ${a.klantNaam}` : ''}`
       : `Keukenmontage${a.klantNaam ? ` — ${a.klantNaam}` : ''}`;
 
+  const kleur = a.test ? TEST_KLEUR : WERK_KLEUR;
+  const summary = a.test ? `[TEST] ${titel}` : titel;
   const omschrijving = [
+    a.test ? 'TESTAFSPRAAK van een stresstester. Mag weg.' : null,
     a.klantTelefoon ? `Tel: ${a.klantTelefoon}` : null,
     a.notitie,
     'Ingepland via de bot.',
@@ -161,18 +168,18 @@ export async function vastleggen(
       ? {
           // Montage beslaat hele dagen; een blok van 07:00 tot 20:00 over
           // drie dagen klopt niet met hoe een agenda dat toont.
-          summary: titel,
+          summary,
           description: omschrijving,
           location: a.adres,
-          colorId: WERK_KLEUR,
+          colorId: kleur,
           start: { date: datum(a.start) },
           end: { date: datum(new Date(+a.eind + 24 * 60 * 60 * 1000)) }, // einddatum is exclusief
         }
       : {
-          summary: titel,
+          summary,
           description: omschrijving,
           location: a.adres,
-          colorId: WERK_KLEUR,
+          colorId: kleur,
           start: { dateTime: a.start.toISOString(), timeZone: 'Europe/Amsterdam' },
           end: { dateTime: a.eind.toISOString(), timeZone: 'Europe/Amsterdam' },
           reminders: { useDefault: false, overrides: [{ method: 'popup', minutes: 60 }] },
