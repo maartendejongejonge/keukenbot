@@ -190,7 +190,9 @@ besluitvorming. Wat nog ontbreekt is het proces dat alles aan elkaar knoopt.
 | Klusjes tegen hoog tarief | af (03-10-2026), alleen aan voor Rotterdam Keukenmontage |
 | Gesprekstest met echte gesprekken | af (03-10-2026) |
 | Tweedehands, transport, budget naar monteur | af (03-10-2026) |
-| Webinterface voor monteurs | nog te doen |
+| Stresstest met vrienden | goedgekeurd (06-10-2026) |
+| Webinterface voor monteurs | gebouwd (06-10-2026), nog op Vercel zetten; zie `web/README.md` |
+| Meerdere WhatsApp-nummers in de runner | nog te doen (of meteen de officiële API) |
 
 ## De bestanden
 
@@ -219,6 +221,7 @@ deploy/env.voorbeeld                sjabloon voor /opt/keukenbot/.env
 deploy/keukenbot.service            zorgt dat de bot blijft draaien
 api/whatsapp.ts                     voor later, bij de officiële WhatsApp API
 archief/sanne/                      de opgeheven Supabase-bot, alleen ter naslag
+web/                                de webinterface voor monteurs (Next.js op Vercel), zie web/README.md
 ```
 
 ## Op de server zetten of bijwerken
@@ -271,11 +274,9 @@ zoekt hij wel gaten binnen één dag.
 1. ~~VPS inrichten~~ — gedaan
 2. ~~Google Agenda koppelen~~ — gedaan
 3. ~~Supabase-project aanmaken en de migratie draaien~~ — gedaan
-4. ~~De runner schrijven~~ — gedaan; nu de bot laten draaien
-5. **Meelezen zonder antwoorden**: een week lang gaat elk besluit naar de
-   monteur in plaats van naar de klant
-6. Pas daarna echt laten antwoorden
-
-Stap 5 is niet optioneel. Je ziet er precies aan wat de bot zou hebben gezegd,
-zonder één klant te riskeren — en het is meteen je verkoopmateriaal voor de
-gesprekken met andere monteurs.
+4. ~~De runner schrijven en live zetten~~ — live sinds 05-10-2026
+5. ~~Stresstest met vrienden~~ (in plaats van een week meelezen) — goedgekeurd 06-10-2026
+6. **Webinterface live zetten** (`web/README.md`) en zelf als eerste gebruiker
+   inloggen, je meldnummer invullen en je agenda via de site koppelen
+7. De runner meerdere WhatsApp-nummers laten bedienen, of overstappen op de
+   officiële WhatsApp Business API, en dan de eerste andere monteur

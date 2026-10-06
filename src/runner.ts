@@ -38,7 +38,12 @@ const env = (naam: string, verplicht = true): string => {
 };
 
 const MEELEZEN = (process.env.MEELEZEN ?? 'true').toLowerCase() !== 'false';
-const MONTEUR_WHATSAPP = env('MONTEUR_WHATSAPP');     // jouw eigen nummer, 31…
+/**
+ * Jouw eigen nummer, 31…. Meldingen van de runner zelf (updates) komen hier,
+ * en ook seintjes van een monteur die in de webinterface nog geen eigen
+ * nummer heeft ingevuld.
+ */
+const MONTEUR_WHATSAPP = env('MONTEUR_WHATSAPP', false);
 const WHATSAPP_NUMMER = env('WHATSAPP_NUMMER');       // het wegwerpnummer
 const AUTH_DIR = process.env.AUTH_DIR ?? '/opt/keukenbot/auth';
 /**
@@ -55,12 +60,61 @@ const VERSIE_BESTAND = process.env.VERSIE_BESTAND ?? '/opt/keukenbot/laatste-tes
 
 const db = createClient(env('SUPABASE_URL'), env('SUPABASE_SERVICE_ROLE_KEY'));
 
-const google: GoogleKoppeling = {
-  clientId: env('GOOGLE_CLIENT_ID'),
-  clientSecret: env('GOOGLE_CLIENT_SECRET'),
-  refreshToken: env('GOOGLE_REFRESH_TOKEN'),
-  agendaId: process.env.GOOGLE_AGENDA_ID ?? 'primary',
-};
+/**
+ * Google Agenda per monteur.
+ *
+ * Koppelt een monteur zijn agenda in de webinterface, dan staat het token in
+ * google_koppelingen (alleen leesbaar met de service role) en hoort het bij de
+ * web-client (GOOGLE_WEB_CLIENT_ID). Zonder die rij valt de runner terug op
+ * de koppeling uit .env (koppel-agenda.mjs) — zo blijft Rotterdam
+ * Keukenmontage werken zoals voorheen.
+ */
+const envGoogle: GoogleKoppeling | null = process.env.GOOGLE_REFRESH_TOKEN
+  ? {
+      clientId: env('GOOGLE_CLIENT_ID'),
+      clientSecret: env('GOOGLE_CLIENT_SECRET'),
+      refreshToken: env('GOOGLE_REFRESH_TOKEN'),
+      agendaId: process.env.GOOGLE_AGENDA_ID ?? 'primary',
+    }
+  : null;
+const WEB_CLIENT_ID = process.env.GOOGLE_WEB_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID ?? '';
+const WEB_CLIENT_SECRET = process.env.GOOGLE_WEB_CLIENT_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? '';
+
+interface MonteurInfo {
+  actief: boolean;
+  /** waar seintjes heen gaan (31…), of leeg */
+  meldnummer: string;
+  google: GoogleKoppeling | null;
+}
+
+/** Een minuut onthouden: een wijziging in de webinterface is zo snel genoeg zichtbaar. */
+const infoCache = new Map<string, { info: MonteurInfo; tot: number }>();
+
+async function monteurInfo(monteurId: string): Promise<MonteurInfo> {
+  const c = infoCache.get(monteurId);
+  if (c && c.tot > Date.now()) return c.info;
+
+  const [{ data: m }, { data: g }] = await Promise.all([
+    db.from('monteurs').select('actief, telefoon').eq('id', monteurId).maybeSingle(),
+    db.from('google_koppelingen').select('refresh_token, agenda_id').eq('monteur_id', monteurId).maybeSingle(),
+  ]);
+
+  const info: MonteurInfo = {
+    actief: m?.actief !== false,
+    meldnummer: m?.telefoon || MONTEUR_WHATSAPP,
+    google: g?.refresh_token && WEB_CLIENT_ID
+      ? { clientId: WEB_CLIENT_ID, clientSecret: WEB_CLIENT_SECRET, refreshToken: g.refresh_token, agendaId: g.agenda_id ?? 'primary' }
+      : envGoogle,
+  };
+  infoCache.set(monteurId, { info, tot: Date.now() + 60_000 });
+  return info;
+}
+
+async function googleVan(monteurId: string): Promise<GoogleKoppeling> {
+  const g = (await monteurInfo(monteurId)).google;
+  if (!g) throw new Error('Geen Google Agenda gekoppeld. Koppel hem in de webinterface onder Koppelingen.');
+  return g;
+}
 
 const transport = baileysTransport({
   authDir: AUTH_DIR,
@@ -92,7 +146,7 @@ const wachtrij = new Map<string, { b: InkomendBericht; delen: Promise<string>[];
  * het antwoord volgt pas als de klant even niets meer stuurt.
  */
 async function ontvang(b: InkomendBericht) {
-  if (b.vanNummer === MONTEUR_WHATSAPP) return;
+  if (MONTEUR_WHATSAPP && b.vanNummer === MONTEUR_WHATSAPP) return;
 
   const sleutel = `${b.kanaalSleutel}|${b.vanNummer}`;
 
@@ -143,9 +197,16 @@ async function behandel(b: InkomendBericht) {
   }
 
   const monteurId = kanaal.data.monteur_id;
+  const info = await monteurInfo(monteurId);
 
   // Berichten van de monteur zelf nooit als klantaanvraag behandelen.
-  if (b.vanNummer === MONTEUR_WHATSAPP) return;
+  if (b.vanNummer === MONTEUR_WHATSAPP || b.vanNummer === info.meldnummer) return;
+
+  // Gepauzeerd in de beheerpagina: de bot antwoordt niet.
+  if (!info.actief) {
+    console.warn(`monteur ${monteurId} staat op pauze; bericht van ${b.vanNummer} niet beantwoord`);
+    return;
+  }
 
   const { data: profielRij } = await db
     .from('monteur_profielen')
@@ -170,6 +231,7 @@ async function behandel(b: InkomendBericht) {
   if (lead.status === 'overgedragen' || lead.status === 'ingepland') {
     await bewaarKlantbericht(lead.id, b.tekst);
     await naarMonteur(
+      monteurId,
       `${lead.status === 'ingepland' ? 'Ingeplande klant' : 'Overgedragen gesprek'} ` +
         `${b.vanNummer}${lead.klant_naam ? ` (${lead.klant_naam})` : ''} schrijft — de bot antwoordt niet:\n\n` +
         b.tekst.slice(0, 1500),
@@ -223,6 +285,7 @@ async function behandel(b: InkomendBericht) {
   if ((besluit.soort === 'antwoord' || besluit.soort === 'voorstel') && besluit.prijs) {
     await bewaarPrijs(lead.id, besluit.prijs, besluit.kwalificatie);
     await naarMonteur(
+      monteurId,
       `Prijsindicatie gegeven aan ${b.vanNummer}\n${prijsOpbouw(besluit.prijs, prijsProfiel!.uurtarief)}`,
     );
   }
@@ -231,7 +294,7 @@ async function behandel(b: InkomendBericht) {
     case 'antwoord': {
       await db.from('leads').update({ status: 'kwalificeren' }).eq('id', lead.id);
       await naarKlant(b.vanNummer, besluit.tekst, lead.id, monteurId, besluit.prijs ? 'prijsindicatie' : 'vervolgvraag');
-      await seintjes(b, besluit.signalen, besluit.tekst, besluit.extraWerk);
+      await seintjes(monteurId, b, besluit.signalen, besluit.tekst, besluit.extraWerk);
       break;
     }
 
@@ -242,6 +305,7 @@ async function behandel(b: InkomendBericht) {
       }).eq('id', lead.id);
       await naarKlant(b.vanNummer, besluit.tekst, lead.id, monteurId, 'afwijzing');
       await naarMonteur(
+      monteurId,
         `Aanvraag afgewezen (${besluit.reden})\nvan ${b.vanNummer}\n"${b.tekst}"`,
       );
       break;
@@ -271,8 +335,8 @@ async function behandel(b: InkomendBericht) {
       }).eq('id', lead.id);
 
       await naarKlant(b.vanNummer, besluit.tekst, lead.id, monteurId, 'slotvoorstel');
-      await seintjes(b, besluit.signalen, besluit.tekst, besluit.extraWerk);
-      await naarMonteur(meldingIngepland({ ...lead, ...naarLead(besluit.kwalificatie) }, besluit, kosten, dagen));
+      await seintjes(monteurId, b, besluit.signalen, besluit.tekst, besluit.extraWerk);
+      await naarMonteur(monteurId, meldingIngepland({ ...lead, ...naarLead(besluit.kwalificatie) }, besluit, kosten, dagen));
       break;
     }
 
@@ -309,6 +373,7 @@ async function draagOver(
     voorgesteld_antwoord: concept ?? null,
   });
   await naarMonteur(
+      monteurId,
     `Overdracht (${reden})\nvan ${nummer}\n${samenvatting}` +
       (concept ? `\n\nVoorstel antwoord:\n${concept}` : '') +
       `\n\nDe bot antwoordt deze klant niet meer; reageer zelf vanaf het botnummer.`,
@@ -417,7 +482,7 @@ async function behandelKeuze(b: InkomendBericht, lead: any, profiel: any, open: 
   const sig: Signaal[] = [];
   if (uit.signaal) sig.push(uit.signaal as Signaal);
   if (uit.confidence < CONFIDENCE_DREMPEL) sig.push('twijfel');
-  await seintjes(b, sig, tekst);
+  await seintjes(monteurId, b, sig, tekst);
 }
 
 const SEINTJE_UITLEG: Record<Signaal, string> = {
@@ -431,12 +496,13 @@ const SEINTJE_UITLEG: Record<Signaal, string> = {
 };
 
 /** Seintje aan de monteur. Het gesprek blijft bij de bot. */
-async function seintjes(b: InkomendBericht, signalen: Signaal[], antwoord: string, extraWerk?: string[]) {
+async function seintjes(monteurId: string, b: InkomendBericht, signalen: Signaal[], antwoord: string, extraWerk?: string[]) {
   if (!signalen.length) return;
   const regels = [...new Set(signalen)].map((s) =>
     s === 'extra_werk' && extraWerk?.length ? `${SEINTJE_UITLEG[s]} (${extraWerk.join(', ')})` : SEINTJE_UITLEG[s] ?? s,
   );
   await naarMonteur(
+      monteurId,
     `Seintje — ${b.vanNummer}\n${regels.join('\n')}\n\nKlant: "${b.tekst.slice(0, 400)}"\n\nBot: "${antwoord.slice(0, 400)}"\n\nDe bot praat verder; je hoeft niets te doen.`,
   );
 }
@@ -453,7 +519,7 @@ async function bevestig(b: InkomendBericht, lead: any, profiel: any, gekozen: an
     try {
       // Is het moment intussen in Google bezet geraakt (zelf iets ingepland)?
       const dagen = Math.ceil((+eind - +start) / 86_400_000) + 1;
-      const bezet = await agendaBezetting(google, start, dagen, []);
+      const bezet = await agendaBezetting(await googleVan(monteurId), start, dagen, []);
       if (bezet.some((x) => x.start < eind && x.eind > start)) {
         await draagOver(
           lead.id, monteurId, b.vanNummer, profiel, 'buiten_regels',
@@ -464,7 +530,7 @@ async function bevestig(b: InkomendBericht, lead: any, profiel: any, gekozen: an
         return;
       }
 
-      eventId = await vastleggen(google, {
+      eventId = await vastleggen(await googleVan(monteurId), {
         soort: gekozen.soort,
         start,
         eind,
@@ -505,6 +571,7 @@ async function bevestig(b: InkomendBericht, lead: any, profiel: any, gekozen: an
 
   await naarKlant(b.vanNummer, tekst, lead.id, monteurId, 'bevestiging');
   await naarMonteur(
+      monteurId,
     `Ingepland en aan jou overgedragen: ${gekozen.soort} ${omschrijving}\nklant ${b.vanNummer}${lead.klant_naam ? ` (${lead.klant_naam})` : ''}` +
       `\n${agendaNotitie(lead)}` +
       (eventId ? '\nStaat in je Google Agenda.' : MEELEZEN ? '\n(meeleesmodus: niet in Google gezet)' : ''),
@@ -555,11 +622,11 @@ async function naarKlant(
   nummer: string,
   tekst: string,
   leadId: string,
-  _monteurId: string,
+  monteurId: string,
   soort: string,
 ) {
   if (MEELEZEN) {
-    await naarMonteur(`[meelezen · ${soort}] naar ${nummer}:\n\n${tekst}`);
+    await naarMonteur(monteurId, `[meelezen · ${soort}] naar ${nummer}:\n\n${tekst}`);
   } else {
     await transport.stuur(nummer, tekst);
   }
@@ -572,9 +639,15 @@ async function naarKlant(
   });
 }
 
-async function naarMonteur(tekst: string) {
+/** Melding aan de monteur via WhatsApp. monteurId null = aan jou als beheerder. */
+async function naarMonteur(monteurId: string | null, tekst: string) {
   try {
-    await transport.stuur(MONTEUR_WHATSAPP, tekst);
+    const nummer = monteurId ? (await monteurInfo(monteurId)).meldnummer : MONTEUR_WHATSAPP;
+    if (!nummer) {
+      console.warn(`geen meldnummer voor monteur ${monteurId}; melding niet verstuurd`);
+      return;
+    }
+    await transport.stuur(nummer, tekst);
   } catch (e) {
     // De melding mag nooit het verwerken blokkeren.
     console.error('melding naar monteur mislukt:', String(e));
@@ -650,12 +723,12 @@ async function bezettingVoor(monteurId: string, vanaf: Date, dagen: number): Pro
   }));
 
   try {
-    return await agendaBezetting(google, vanaf, dagen, eigen);
+    return await agendaBezetting(await googleVan(monteurId), vanaf, dagen, eigen);
   } catch (e) {
     // Zonder agenda liever niets voorstellen dan iets fouts: geef de eigen
     // afspraken terug én log luid, zodat je het merkt.
     console.error('AGENDA ONBEREIKBAAR:', String(e));
-    await naarMonteur(`Let op: de agenda is onbereikbaar. ${String(e)}`);
+    await naarMonteur(monteurId, `Let op: de agenda is onbereikbaar. ${String(e)}`);
     return eigen;
   }
 }
@@ -721,6 +794,7 @@ async function meldUpdate() {
   onthoudGemeld(VERSIE_BESTAND, versie);
   console.log(`updatebericht versie ${versie} naar ${gelukt}/${TESTNUMMERS.size} testers`);
   await naarMonteur(
+    null,
     `Nieuwe versie ${versie} draait. ${gelukt} van ${TESTNUMMERS.size} testers hebben het updatebericht gekregen; hun gesprekken zijn gewist.`,
   );
 }
