@@ -23,7 +23,7 @@ export interface BeheerRij {
 function Link({ staat }: { staat: BeheerStaat }) {
   if (!staat.link) return null;
   const bericht =
-    `Hoi ${staat.naam ?? ''}, hierbij je toegang tot de keukenbot. Tik op de link om in te loggen en je instellingen ` +
+    `Hoi ${staat.naam ?? ''}, hierbij je toegang tot Pico. Tik op de link om in te loggen en je instellingen ` +
     `in te vullen:\n${staat.link}\n\nDe link werkt één keer. Daarna log je in met je e-mailadres.`;
   return (
     <div className="melding goed">

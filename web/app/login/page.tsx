@@ -15,7 +15,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
     <div className="login">
       <div className="vlak">
         <div className="kop">
-          <span className="merk"><i aria-hidden="true" />Keukenbot</span>
+          <span className="merk"><i aria-hidden="true" />Pico</span>
           <p className="zacht">Je aanvragen beantwoord en ingepland terwijl jij onder een aanrecht ligt.</p>
         </div>
         {fout && FOUTEN[fout] && <div className="melding fout" role="alert">{FOUTEN[fout]}</div>}

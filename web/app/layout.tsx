@@ -8,7 +8,7 @@ import '@fontsource/ibm-plex-sans/600.css';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: { default: 'Keukenbot', template: '%s · Keukenbot' },
+  title: { default: 'Pico', template: '%s · Pico' },
   description: 'Je klantaanvragen beantwoord en ingepland terwijl jij aan het werk bent.',
   robots: { index: false },
 };

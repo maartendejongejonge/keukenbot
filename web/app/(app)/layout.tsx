@@ -21,7 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <header className="balk">
         <Link href="/" className="merk" title={botAan ? 'De bot staat aan' : 'De bot staat nog niet aan'}>
           <i className={botAan ? '' : 'uit'} aria-hidden="true" />
-          Keukenbot
+          Pico
         </Link>
         <span className="zacht" style={{ fontSize: 13 }}>{monteur.bedrijfsnaam}</span>
         <Menu beheerder={beheerder} openSeintjes={count ?? 0} />

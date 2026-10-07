@@ -44,7 +44,7 @@ export function isReset(tekst: string): boolean {
 }
 
 export const UPDATE_TEKST =
-  'De keukenbot is geüpdatet en verbeterd. U kunt mij nu als testpersoon opnieuw stresstesten. ' +
+  'Pico is geüpdatet en verbeterd. U kunt mij nu als testpersoon opnieuw stresstesten. ' +
   "Uw vorige gesprek is gewist. Stuur tussendoor 'reset' om opnieuw te beginnen.";
 
 export const RESET_TEKST =
