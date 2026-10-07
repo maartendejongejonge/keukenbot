@@ -2,7 +2,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { huidigeSessie } from '@/lib/monteur';
 import { supabaseServer } from '@/lib/supabase/server';
-import { REDEN, SOORT, STATUS, datumTijd, nummer, wanneer } from '@/lib/format';
+import { REDEN, SOORT, STATUS, datumTijd, kaleTekst, nummer, wanneer } from '@/lib/format';
 import type { Afspraak, Lead, Seintje } from '@/lib/types';
 import { Kopieer } from '@/components/kopieer';
 import { zetSeintje } from './actions';
@@ -79,7 +79,7 @@ export default async function Overzicht() {
                 {s.leads?.klant_naam ?? nummer(s.leads?.klant_telefoon)}
                 {s.leads?.plaats ? ` · ${s.leads.plaats}` : ''}
               </p>
-              <p style={{ whiteSpace: 'pre-wrap' }}>{s.samenvatting}</p>
+              <Samenvatting tekst={kaleTekst(s.samenvatting)} />
               {s.voorgesteld_antwoord && (
                 <div className="vlak" style={{ padding: 12 }}>
                   <small>Voorstel voor je antwoord</small>
@@ -180,4 +180,15 @@ async function gemiddeldeReactie(supabase: Awaited<ReturnType<typeof supabaseSer
   if (!verschillen.length) return null;
   const sec = verschillen.reduce((a, b) => a + b, 0) / verschillen.length / 1000;
   return sec < 90 ? `${Math.round(sec)} sec` : `${Math.round(sec / 60)} min`;
+}
+
+/** Lange samenvattingen (bijvoorbeeld een uitgelezen foto) inklappen. */
+function Samenvatting({ tekst }: { tekst: string }) {
+  if (tekst.length <= 220) return <p style={{ whiteSpace: 'pre-wrap' }}>{tekst}</p>;
+  return (
+    <details>
+      <summary style={{ cursor: 'pointer', whiteSpace: 'pre-wrap' }}>{tekst.slice(0, 200).trimEnd()}… <span className="zacht">meer</span></summary>
+      <p style={{ whiteSpace: 'pre-wrap', marginTop: 6 }}>{tekst}</p>
+    </details>
+  );
 }

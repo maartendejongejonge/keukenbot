@@ -63,7 +63,15 @@ export const REDEN: Record<string, string> = {
   buiten_werkgebied: 'Buiten werkgebied',
   klus_niet_aangenomen: 'Doe je niet',
   klusje_buiten_gebied: 'Klusje buiten gebied',
+  lage_confidence: 'Bot wist het niet zeker',
+  levertijd: 'Vraag over levertijd',
+  emotie: 'Klant is boos of heeft haast',
 };
+
+/** Samenvattingen bevatten soms markdown van het model (**vet**, ---). Voor het scherm weghalen. */
+export function kaleTekst(t: string): string {
+  return t.replace(/\*\*(.+?)\*\*/g, '$1').replace(/^\s*-{3,}\s*$/gm, '').replace(/\n{3,}/g, '\n\n').trim();
+}
 
 /** 31612345678 → 06-12345678 */
 export function nummer(n: string | null | undefined): string {

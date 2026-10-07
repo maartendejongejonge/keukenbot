@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { supabaseServer } from '@/lib/supabase/server';
-import { REDEN, SOORT, STATUS, datumTijd, euro, nummer, wanneer } from '@/lib/format';
+import { REDEN, SOORT, STATUS, datumTijd, euro, kaleTekst, nummer, wanneer } from '@/lib/format';
 import type { Afspraak, Bericht, Lead, Seintje } from '@/lib/types';
 import { Kopieer } from '@/components/kopieer';
 import { zetSeintje } from '../../actions';
@@ -58,7 +58,7 @@ export default async function Gesprek({ params }: { params: Promise<{ id: string
       {seintjes.filter((s) => s.status === 'open').map((s) => (
         <div key={s.id} className="melding actie">
           <strong>{REDEN[s.reden] ?? s.reden}</strong>
-          <p style={{ whiteSpace: 'pre-wrap' }}>{s.samenvatting}</p>
+          <p style={{ whiteSpace: 'pre-wrap' }}>{kaleTekst(s.samenvatting)}</p>
           {s.voorgesteld_antwoord && <div className="rij"><Kopieer tekst={s.voorgesteld_antwoord} label="Kopieer voorgesteld antwoord" /></div>}
           <form action={zetSeintje} className="rij">
             <input type="hidden" name="id" value={s.id} />
