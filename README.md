@@ -97,8 +97,10 @@ aanleggen, slopen) gaat altijd naar de monteur.
 - Een bedrijf dat structureel wil samenwerken (keukenhandel, aannemer):
   geen toezeggingen, seintje `wil_monteur`.
 - Lukt het model niet (geen bruikbaar antwoord), dan stuurt de bot nooit
-  twee keer dezelfde terugvalvraag maar een neutraal bericht en een seintje.
-- Elk seintje, elke overdracht en elke inplanning bevat het volledige gesprek,
+  twee keer dezelfde terugvalvraag. Loopt hij vast, dan zegt hij dat de monteur
+  ernaar kijkt en is het een overdracht, geen seintje (07-10-2026).
+- Een seintje blijft kort (laatste bericht). Elke overdracht en elke inplanning
+  bevat het volledige gesprek,
   en de foto's en PDF's van de klant komen als bijlage mee (alleen de bestanden
   die de monteur nog niet had). De runner bewaart ze 60 dagen in
   `/opt/keukenbot/bestanden` (`src/bestanden.ts`), niet in de database.

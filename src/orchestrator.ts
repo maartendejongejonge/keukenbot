@@ -128,10 +128,18 @@ export async function verwerkBericht(
     const terugval = terugvalVraag(kwalificatie, prijzen);
     const vorigeBot = [...ctx.historie].reverse().find((h) => h.afzender === 'bot')?.tekst.trim();
     if (vorigeBot === terugval) {
-      antwoord =
-        `Dank u, ik heb uw bericht ontvangen. Ik kan het nu niet goed verwerken; ` +
-        `${profiel.aanspreeknaam || 'de monteur'} kijkt ernaar en u hoort vandaag van ons.`;
-      signalen.add('twijfel');
+      // De bot loopt vast en belooft dat de monteur ernaar kijkt. Dan is het
+      // ook echt een overdracht, geen seintje: de bot zwijgt vanaf nu en de
+      // monteur krijgt het hele gesprek met de bestanden (07-10-2026).
+      return {
+        soort: 'overdracht',
+        reden: 'lage_confidence',
+        samenvatting: vatSamen({ ...ctx, kwalificatie }, bericht, 'de bot liep vast en kon het bericht niet verwerken'),
+        kwalificatie,
+        klanttekst:
+          `Dank u, ik heb uw bericht ontvangen. Ik kan het nu niet goed verwerken; ` +
+          `${profiel.aanspreeknaam || 'de monteur'} kijkt ernaar en u hoort vandaag van ons.`,
+      };
     } else {
       antwoord = terugval;
     }

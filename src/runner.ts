@@ -310,7 +310,7 @@ async function behandel(b: InkomendBericht) {
     case 'antwoord': {
       await db.from('leads').update({ status: 'kwalificeren' }).eq('id', lead.id);
       await naarKlant(b.vanNummer, besluit.tekst, lead.id, monteurId, besluit.prijs ? 'prijsindicatie' : 'vervolgvraag');
-      await seintjes(monteurId, lead, b, besluit.signalen, besluit.extraWerk);
+      await seintjes(monteurId, lead, b, besluit.signalen, besluit.tekst, besluit.extraWerk);
       break;
     }
 
@@ -351,7 +351,7 @@ async function behandel(b: InkomendBericht) {
       }).eq('id', lead.id);
 
       await naarKlant(b.vanNummer, besluit.tekst, lead.id, monteurId, 'slotvoorstel');
-      await seintjes(monteurId, lead, b, besluit.signalen, besluit.extraWerk);
+      await seintjes(monteurId, lead, b, besluit.signalen, besluit.tekst, besluit.extraWerk);
       await naarMonteur(monteurId, meldingIngepland({ ...lead, ...naarLead(besluit.kwalificatie) }, besluit, kosten, dagen));
       break;
     }
@@ -395,7 +395,7 @@ async function draagOver(
 
   await naarMonteur(
     monteurId,
-    `Overdracht (${reden})\nvan ${nummer}\n${samenvatting}` +
+    `Overdracht (${reden})\nvan ${nummer}\n${kortBestandsinhoud(samenvatting, '')}` +
       (concept ? `\n\nVoorstel antwoord:\n${concept}` : '') +
       `\n\n${await gesprekVoorMonteur(leadId)}` +
       `\n\nDe bot antwoordt deze klant niet meer; reageer zelf vanaf het botnummer.`,
@@ -502,7 +502,7 @@ async function behandelKeuze(b: InkomendBericht, lead: any, profiel: any, open: 
   const sig: Signaal[] = [];
   if (uit.signaal) sig.push(uit.signaal as Signaal);
   if (uit.confidence < CONFIDENCE_DREMPEL) sig.push('twijfel');
-  await seintjes(monteurId, lead, b, sig);
+  await seintjes(monteurId, lead, b, sig, tekst);
 }
 
 const SEINTJE_UITLEG: Record<Signaal, string> = {
@@ -516,11 +516,11 @@ const SEINTJE_UITLEG: Record<Signaal, string> = {
 };
 
 /**
- * Seintje aan de monteur. Het gesprek blijft bij de bot.
- * Met het volledige gesprek en de bestanden van de klant, zodat de monteur
- * zelf kan meekijken zonder iets op te zoeken.
+ * Seintje aan de monteur. Het gesprek blijft bij de bot, dus kort: alleen het
+ * laatste bericht. Het volledige gesprek en de bestanden komen pas bij een
+ * overdracht of inplanning.
  */
-async function seintjes(monteurId: string, lead: any, b: InkomendBericht, signalen: Signaal[], extraWerk?: string[]) {
+async function seintjes(monteurId: string, lead: any, b: InkomendBericht, signalen: Signaal[], antwoord: string, extraWerk?: string[]) {
   if (!signalen.length) return;
   const regels = [...new Set(signalen)].map((s) =>
     s === 'extra_werk' && extraWerk?.length ? `${SEINTJE_UITLEG[s]} (${extraWerk.join(', ')})` : SEINTJE_UITLEG[s] ?? s,
@@ -528,19 +528,18 @@ async function seintjes(monteurId: string, lead: any, b: InkomendBericht, signal
   await naarMonteur(
     monteurId,
     `Seintje — ${b.vanNummer}${lead.klant_naam ? ` (${lead.klant_naam})` : ''}\n${regels.join('\n')}\n\n` +
-      (await gesprekVoorMonteur(lead.id)) +
+      `Klant: "${kortBestandsinhoud(b.tekst, '').slice(0, 400)}"\n\nBot: "${antwoord.slice(0, 400)}"` +
       `\n\nDe bot praat verder; je hoeft niets te doen.`,
   );
-  await bestandenNaarMonteur(monteurId, lead);
 }
 
 /** Uitgelezen bestandsinhoud inkorten tot de kopregel: het origineel gaat als bijlage mee. */
-function kortBestandsinhoud(tekst: string): string {
+function kortBestandsinhoud(tekst: string, achter = ' (bijlage hieronder)'): string {
   return tekst
     // Uitgelezen inhoud loopt tot [einde bestand]; oudere berichten hebben die
     // markering niet, daar loopt hij tot het volgende bestand of het einde.
-    .replace(/\n\[inhoud van het bestand, automatisch uitgelezen[^\]]*\][\s\S]*?(\n\[einde bestand\]|(?=\n\n\[klant stuurde)|$)/g, ' (bijlage hieronder)')
-    .replace(/\n\[(uitlezen mislukt|bestandstype)[^\]]*\]/g, ' (bijlage hieronder)');
+    .replace(/\n\[inhoud van het bestand, automatisch uitgelezen[^\]]*\][\s\S]*?(\n\[einde bestand\]|(?=\n\n\[klant stuurde)|$)/g, achter)
+    .replace(/\n\[(uitlezen mislukt|bestandstype)[^\]]*\]/g, achter);
 }
 
 /** Het hele gesprek als leesbare tekst, voor een melding aan de monteur. */
