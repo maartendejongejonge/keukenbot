@@ -1,5 +1,5 @@
 node_modules/
 dist/
 .env
-auth/
+/auth/
 laatste-testmelding.txt
