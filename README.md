@@ -98,6 +98,10 @@ aanleggen, slopen) gaat altijd naar de monteur.
   geen toezeggingen, seintje `wil_monteur`.
 - Lukt het model niet (geen bruikbaar antwoord), dan stuurt de bot nooit
   twee keer dezelfde terugvalvraag maar een neutraal bericht en een seintje.
+- Elk seintje, elke overdracht en elke inplanning bevat het volledige gesprek,
+  en de foto's en PDF's van de klant komen als bijlage mee (alleen de bestanden
+  die de monteur nog niet had). De runner bewaart ze 60 dagen in
+  `/opt/keukenbot/bestanden` (`src/bestanden.ts`), niet in de database.
 
 ## Klusjes buiten de keuken (besloten 03-10-2026)
 
@@ -206,6 +210,7 @@ test/voorbeeldgesprekken.json       11 geanonimiseerde klantgesprekken
 src/prijs.ts                        prijsindicatie uit uurnormen (alleen als de monteur dat aanzet)
 src/prijs.test.ts                   rekentest op de referentiekeukens (npm run test:prijs)
 src/media.ts                        foto's en PDF's van klanten laten uitlezen
+src/bestanden.ts                    bestanden van klanten bewaren en doorsturen naar de monteur
 src/keuze.ts                        welk voorgesteld moment kiest de klant
 src/planner.ts                      werktijden, reistijd, buffer, vrije momenten
 src/reiskosten.ts                   afstand, rijtijd en reiskosten per postcode

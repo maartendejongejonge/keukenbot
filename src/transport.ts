@@ -37,6 +37,8 @@ export interface Transport {
   naam: 'baileys' | 'cloud_api';
   start(onBericht: (b: InkomendBericht) => Promise<void>): Promise<void>;
   stuur(naar: string, tekst: string): Promise<void>;
+  /** Een foto of bestand doorsturen (bijv. de tekening van een klant naar de monteur). */
+  stuurBestand(naar: string, bestand: { bytes: Buffer; mime: string; naam: string; bijschrift?: string }): Promise<void>;
   /** Wordt vervuld zodra de verbinding de eerste keer open is. */
   verbonden(): Promise<void>;
   stop(): Promise<void>;
@@ -210,6 +212,20 @@ export function baileysTransport(opts: {
       await new Promise((r) => setTimeout(r, 1_500 + Math.random() * 2_500));
       const msg = await sock.sendMessage(jid, { text: tekst });
       log(`verstuurd naar ${jid}`);
+      if (msg?.key?.id) {
+        verstuurd.set(msg.key.id, msg.message);
+        if (verstuurd.size > 1000) verstuurd.delete(verstuurd.keys().next().value!);
+      }
+    },
+
+    async stuurBestand(naar, { bytes, mime, naam, bijschrift }) {
+      const jid = naar.includes('@') ? naar : adresVan.get(naar) ?? `${naar}@s.whatsapp.net`;
+      // Foto's als foto (direct zichtbaar), de rest als document met naam.
+      const inhoud = ['image/jpeg', 'image/png'].includes(mime)
+        ? { image: bytes, mimetype: mime, caption: bijschrift }
+        : { document: bytes, mimetype: mime || 'application/octet-stream', fileName: naam, caption: bijschrift };
+      const msg = await sock.sendMessage(jid, inhoud);
+      log(`bestand verstuurd naar ${jid} (${naam})`);
       if (msg?.key?.id) {
         verstuurd.set(msg.key.id, msg.message);
         if (verstuurd.size > 1000) verstuurd.delete(verstuurd.keys().next().value!);

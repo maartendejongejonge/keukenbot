@@ -18,6 +18,7 @@ import { formuleerVoorstel, vervaltOp } from './planner.js';
 import { CONFIDENCE_DREMPEL, systeemprompt, type Kwalificatie, type PrijsContext } from './kwalificatie.js';
 import { keuzePrompt, leesKeuze, omschrijfSlot, snelleKeuze, type KeuzeUitkomst } from './keuze.js';
 import { mediaNaarTekst } from './media.js';
+import { bestandenVan, bewaarBestand, leesBytes, markeerVerstuurd, ruimBestandenOp, wisBestanden } from './bestanden.js';
 import { duidBericht } from './model.js';
 import { prijsOpbouw, prijzenActief, type PrijsProfiel, type Prijsindicatie, type Uurnormen } from './prijs.js';
 import { bezetting as agendaBezetting, vastleggen, type GoogleKoppeling } from './agenda.js';
@@ -161,7 +162,7 @@ async function ontvang(b: InkomendBericht) {
     return;
   }
 
-  const deel = b.media ? mediaNaarTekst(b.media, b.tekst) : Promise.resolve(b.tekst);
+  const deel = b.media ? mediaBinnen(b) : Promise.resolve(b.tekst);
   const bestaand = wachtrij.get(sleutel);
   if (bestaand) clearTimeout(bestaand.timer);
 
@@ -178,6 +179,20 @@ async function ontvang(b: InkomendBericht) {
     }
   }, BUNDEL_MS);
   wachtrij.set(sleutel, item);
+}
+
+/**
+ * Een foto of bestand: één keer downloaden, een kopie bewaren voor de monteur
+ * (die krijgt het origineel bij een seintje), en laten uitlezen voor de bot.
+ */
+async function mediaBinnen(b: InkomendBericht): Promise<string> {
+  const media = b.media!;
+  const bytes = media.download();
+  bytes.then(
+    (buf) => bewaarBestand(b.vanNummer, buf, media),
+    (e) => console.error('media downloaden mislukt:', String(e)),
+  );
+  return mediaNaarTekst({ ...media, download: () => bytes }, b.tekst);
 }
 
 // ------------------------------------------------------------- per bericht
@@ -234,8 +249,9 @@ async function behandel(b: InkomendBericht) {
       monteurId,
       `${lead.status === 'ingepland' ? 'Ingeplande klant' : 'Overgedragen gesprek'} ` +
         `${b.vanNummer}${lead.klant_naam ? ` (${lead.klant_naam})` : ''} schrijft — de bot antwoordt niet:\n\n` +
-        b.tekst.slice(0, 1500),
+        kortBestandsinhoud(b.tekst).slice(0, 3000),
     );
+    await bestandenNaarMonteur(monteurId, lead);
     return;
   }
 
@@ -294,7 +310,7 @@ async function behandel(b: InkomendBericht) {
     case 'antwoord': {
       await db.from('leads').update({ status: 'kwalificeren' }).eq('id', lead.id);
       await naarKlant(b.vanNummer, besluit.tekst, lead.id, monteurId, besluit.prijs ? 'prijsindicatie' : 'vervolgvraag');
-      await seintjes(monteurId, b, besluit.signalen, besluit.tekst, besluit.extraWerk);
+      await seintjes(monteurId, lead, b, besluit.signalen, besluit.extraWerk);
       break;
     }
 
@@ -335,7 +351,7 @@ async function behandel(b: InkomendBericht) {
       }).eq('id', lead.id);
 
       await naarKlant(b.vanNummer, besluit.tekst, lead.id, monteurId, 'slotvoorstel');
-      await seintjes(monteurId, b, besluit.signalen, besluit.tekst, besluit.extraWerk);
+      await seintjes(monteurId, lead, b, besluit.signalen, besluit.extraWerk);
       await naarMonteur(monteurId, meldingIngepland({ ...lead, ...naarLead(besluit.kwalificatie) }, besluit, kosten, dagen));
       break;
     }
@@ -372,16 +388,20 @@ async function draagOver(
     samenvatting,
     voorgesteld_antwoord: concept ?? null,
   });
-  await naarMonteur(
-      monteurId,
-    `Overdracht (${reden})\nvan ${nummer}\n${samenvatting}` +
-      (concept ? `\n\nVoorstel antwoord:\n${concept}` : '') +
-      `\n\nDe bot antwoordt deze klant niet meer; reageer zelf vanaf het botnummer.`,
-  );
   const tekst =
     klanttekst ?? `Ik leg dit even voor aan ${profiel.aanspreeknaam || 'de monteur'}, hij reageert vandaag zelf.`;
   if (!MEELEZEN) await transport.stuur(nummer, tekst);
   await db.from('berichten').insert({ lead_id: leadId, richting: 'uit', afzender: 'bot', tekst });
+
+  await naarMonteur(
+    monteurId,
+    `Overdracht (${reden})\nvan ${nummer}\n${samenvatting}` +
+      (concept ? `\n\nVoorstel antwoord:\n${concept}` : '') +
+      `\n\n${await gesprekVoorMonteur(leadId)}` +
+      `\n\nDe bot antwoordt deze klant niet meer; reageer zelf vanaf het botnummer.`,
+  );
+  const { data: lead } = await db.from('leads').select('id, klant_telefoon, aangemaakt_op').eq('id', leadId).maybeSingle();
+  if (lead) await bestandenNaarMonteur(monteurId, lead);
 }
 
 // ------------------------------------------------------- keuze uit voorstel
@@ -482,7 +502,7 @@ async function behandelKeuze(b: InkomendBericht, lead: any, profiel: any, open: 
   const sig: Signaal[] = [];
   if (uit.signaal) sig.push(uit.signaal as Signaal);
   if (uit.confidence < CONFIDENCE_DREMPEL) sig.push('twijfel');
-  await seintjes(monteurId, b, sig, tekst);
+  await seintjes(monteurId, lead, b, sig);
 }
 
 const SEINTJE_UITLEG: Record<Signaal, string> = {
@@ -495,16 +515,80 @@ const SEINTJE_UITLEG: Record<Signaal, string> = {
   budget: 'Klant kan het bedrag niet betalen. Het gesprek is aan jou overgedragen.',
 };
 
-/** Seintje aan de monteur. Het gesprek blijft bij de bot. */
-async function seintjes(monteurId: string, b: InkomendBericht, signalen: Signaal[], antwoord: string, extraWerk?: string[]) {
+/**
+ * Seintje aan de monteur. Het gesprek blijft bij de bot.
+ * Met het volledige gesprek en de bestanden van de klant, zodat de monteur
+ * zelf kan meekijken zonder iets op te zoeken.
+ */
+async function seintjes(monteurId: string, lead: any, b: InkomendBericht, signalen: Signaal[], extraWerk?: string[]) {
   if (!signalen.length) return;
   const regels = [...new Set(signalen)].map((s) =>
     s === 'extra_werk' && extraWerk?.length ? `${SEINTJE_UITLEG[s]} (${extraWerk.join(', ')})` : SEINTJE_UITLEG[s] ?? s,
   );
   await naarMonteur(
-      monteurId,
-    `Seintje — ${b.vanNummer}\n${regels.join('\n')}\n\nKlant: "${b.tekst.slice(0, 400)}"\n\nBot: "${antwoord.slice(0, 400)}"\n\nDe bot praat verder; je hoeft niets te doen.`,
+    monteurId,
+    `Seintje — ${b.vanNummer}${lead.klant_naam ? ` (${lead.klant_naam})` : ''}\n${regels.join('\n')}\n\n` +
+      (await gesprekVoorMonteur(lead.id)) +
+      `\n\nDe bot praat verder; je hoeft niets te doen.`,
   );
+  await bestandenNaarMonteur(monteurId, lead);
+}
+
+/** Uitgelezen bestandsinhoud inkorten tot de kopregel: het origineel gaat als bijlage mee. */
+function kortBestandsinhoud(tekst: string): string {
+  return tekst
+    // Uitgelezen inhoud loopt tot [einde bestand]; oudere berichten hebben die
+    // markering niet, daar loopt hij tot het volgende bestand of het einde.
+    .replace(/\n\[inhoud van het bestand, automatisch uitgelezen[^\]]*\][\s\S]*?(\n\[einde bestand\]|(?=\n\n\[klant stuurde)|$)/g, ' (bijlage hieronder)')
+    .replace(/\n\[(uitlezen mislukt|bestandstype)[^\]]*\]/g, ' (bijlage hieronder)');
+}
+
+/** Het hele gesprek als leesbare tekst, voor een melding aan de monteur. */
+async function gesprekVoorMonteur(leadId: string): Promise<string> {
+  const { data } = await db
+    .from('berichten')
+    .select('afzender, tekst')
+    .eq('lead_id', leadId)
+    .order('verzonden_op', { ascending: true });
+  const wie = { klant: 'Klant', bot: 'Bot', monteur: 'Jij' } as Record<string, string>;
+  const regels = (data ?? []).map((r: any) => `${wie[r.afzender] ?? r.afzender}: ${kortBestandsinhoud(String(r.tekst ?? '')).trim()}`);
+
+  // WhatsApp kan lange berichten aan, maar leesbaar moet het blijven:
+  // bij een heel lang gesprek vallen de oudste berichten weg.
+  const MAX = 12_000;
+  let weg = 0;
+  while (regels.length > 1 && regels.join('\n\n').length > MAX) {
+    regels.shift();
+    weg++;
+  }
+  return `Volledig gesprek:\n` + (weg ? `(… ${weg} eerdere berichten weggelaten)\n\n` : '\n') + regels.join('\n\n');
+}
+
+/** De foto's en bestanden van de klant die de monteur nog niet heeft. */
+async function bestandenNaarMonteur(monteurId: string, lead: any) {
+  try {
+    const nummer = (await monteurInfo(monteurId)).meldnummer;
+    if (!nummer) return;
+    const sinds = lead.aangemaakt_op ? new Date(lead.aangemaakt_op) : undefined;
+    const nieuw = bestandenVan(lead.klant_telefoon, sinds, true);
+    const gelukt: string[] = [];
+    for (const [i, f] of nieuw.entries()) {
+      try {
+        await transport.stuurBestand(nummer, {
+          bytes: leesBytes(lead.klant_telefoon, f),
+          mime: f.mime,
+          naam: f.naam,
+          bijschrift: `Van klant ${lead.klant_telefoon} (${i + 1}/${nieuw.length})`,
+        });
+        gelukt.push(f.id);
+      } catch (e) {
+        console.error(`bestand ${f.naam} naar monteur mislukt:`, String(e));
+      }
+    }
+    markeerVerstuurd(lead.klant_telefoon, gelukt);
+  } catch (e) {
+    console.error('bestanden naar monteur mislukt:', String(e));
+  }
 }
 
 /** De gekozen afspraak in Google zetten, de rest vrijgeven, iedereen inlichten. */
@@ -574,8 +658,10 @@ async function bevestig(b: InkomendBericht, lead: any, profiel: any, gekozen: an
       monteurId,
     `Ingepland en aan jou overgedragen: ${gekozen.soort} ${omschrijving}\nklant ${b.vanNummer}${lead.klant_naam ? ` (${lead.klant_naam})` : ''}` +
       `\n${agendaNotitie(lead)}` +
-      (eventId ? '\nStaat in je Google Agenda.' : MEELEZEN ? '\n(meeleesmodus: niet in Google gezet)' : ''),
+      (eventId ? '\nStaat in je Google Agenda.' : MEELEZEN ? '\n(meeleesmodus: niet in Google gezet)' : '') +
+      `\n\n${await gesprekVoorMonteur(lead.id)}`,
   );
+  await bestandenNaarMonteur(monteurId, lead);
 }
 
 function agendaNotitie(lead: any): string {
@@ -748,6 +834,7 @@ async function wisGesprek(nummer: string) {
     .select('id')
     .eq('klant_telefoon', nummer)
     .in('status', OPEN_STATUSSEN);
+  wisBestanden(nummer);
   const ids = (data ?? []).map((l: any) => l.id);
   if (!ids.length) return;
 
@@ -800,6 +887,7 @@ async function meldUpdate() {
 }
 
 async function ruimOp() {
+  ruimBestandenOp();
   const { data } = await db
     .from('afspraken')
     .update({ status: 'geannuleerd' })

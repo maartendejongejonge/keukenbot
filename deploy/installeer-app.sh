@@ -43,6 +43,7 @@ else
   echo "   bestaat al, niet aangeraakt"
 fi
 install -d -m 700 -o "$GEBRUIKER" -g "$GEBRUIKER" "$MAP/auth"
+install -d -m 700 -o "$GEBRUIKER" -g "$GEBRUIKER" "$MAP/bestanden"
 
 echo ">> Service installeren"
 cp "$MAP/deploy/keukenbot.service" /etc/systemd/system/keukenbot.service
