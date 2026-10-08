@@ -1,11 +1,12 @@
 /**
  * Rekentest op de drie referentiekeukens die Maarten op 02-10-2026 goedkeurde.
+ * Sinds 08-10-2026: hogere bouwpakketnormen (IKEA kwam te laag uit) en kitwerk.
  * Draaien: npm run build && node dist/prijs.test.js
  */
 import { berekenPrijs, prijsTekst, type Uurnormen } from './prijs.js';
 
 export const RKM_UURNORMEN: Uurnormen = {
-  kast_bouwpakket: { onder: 0.75, hang: 0.6, hoog: 1.25 },
+  kast_bouwpakket: { onder: 1.5, hang: 1, hoog: 2.5 },
   kast_voorgemonteerd: { onder: 0.25, hang: 0.25, hoog: 0.5 },
   grens_kasten: 10,
   stellen_ophangen: { klein: 3, groot: 4 },
@@ -13,6 +14,8 @@ export const RKM_UURNORMEN: Uurnormen = {
   opruimen: { klein: 1.5, groot: 2 },
   werkblad: 3,
   werkblad_hoek_extra: 1,
+  kitwerk: 1,
+  kitwerk_hoek_extra: 0.5,
   eiland_extra: 3,
   water_basis: 1.5,
   waterpunt: 0.75,

@@ -22,6 +22,8 @@ export const UURNORM_VELDEN: { sleutel: string; groep: string; tekst: string; ee
   { sleutel: 'opruimen.groot', groep: 'Klein of groot', tekst: 'Opruimen, grote keuken', eenheid: 'uur' },
   { sleutel: 'werkblad', groep: 'Werkblad en eiland', tekst: 'Werkblad plaatsen', eenheid: 'uur' },
   { sleutel: 'werkblad_hoek_extra', groep: 'Werkblad en eiland', tekst: 'Extra bij een hoekblad', eenheid: 'uur' },
+  { sleutel: 'kitwerk', groep: 'Werkblad en eiland', tekst: 'Werkblad afkitten (elk blad)', eenheid: 'uur' },
+  { sleutel: 'kitwerk_hoek_extra', groep: 'Werkblad en eiland', tekst: 'Extra afkitten bij een hoek- of U-blad', eenheid: 'uur' },
   { sleutel: 'eiland_extra', groep: 'Werkblad en eiland', tekst: 'Extra bij een kookeiland', eenheid: 'uur' },
   { sleutel: 'water_basis', groep: 'Water en apparatuur', tekst: 'Water aansluiten (basis)', eenheid: 'uur' },
   { sleutel: 'waterpunt', groep: 'Water en apparatuur', tekst: 'Per extra waterpunt (vaatwasser, Quooker)', eenheid: 'uur' },
@@ -34,7 +36,7 @@ export const UURNORM_VELDEN: { sleutel: string; groep: string; tekst: string; ee
 
 /** Startwaarden voor een monteur die nog geen eigen uurnormen heeft. */
 export const STANDAARD_UURNORMEN: Uurnormen = {
-  kast_bouwpakket: { onder: 0.75, hang: 0.6, hoog: 1.25 },
+  kast_bouwpakket: { onder: 1.5, hang: 1, hoog: 2.5 },
   kast_voorgemonteerd: { onder: 0.25, hang: 0.25, hoog: 0.5 },
   grens_kasten: 10,
   stellen_ophangen: { klein: 3, groot: 4 },
@@ -42,6 +44,8 @@ export const STANDAARD_UURNORMEN: Uurnormen = {
   opruimen: { klein: 1.5, groot: 2 },
   werkblad: 3,
   werkblad_hoek_extra: 1,
+  kitwerk: 1,
+  kitwerk_hoek_extra: 0.5,
   eiland_extra: 3,
   water_basis: 1.5,
   waterpunt: 0.75,

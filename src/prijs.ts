@@ -51,6 +51,13 @@ export interface Uurnormen {
   opruimen: { klein: number; groot: number };
   werkblad: number;
   werkblad_hoek_extra: number;
+  /**
+   * Afkitten van het aanrechtblad (aansluiting op de muur, spatrand,
+   * spoelbak en kookplaat). Elk blad wordt afgekit, ook als de steenhouwer
+   * het plaatst. Optioneel in oude profielen; dan gelden de standaardwaarden.
+   */
+  kitwerk?: number;
+  kitwerk_hoek_extra?: number;
   eiland_extra: number;
   water_basis: number;
   waterpunt: number;
@@ -100,6 +107,10 @@ export type PrijsUitkomst =
   | { soort: 'monteur'; reden: string; basis?: Prijsindicatie };
 
 const BTW = 0.21;
+
+/** Voor profielen die kitwerk nog niet in hun uurnormen hebben. */
+export const STANDAARD_KITWERK = 1;
+export const STANDAARD_KITWERK_HOEK = 0.5;
 
 export function prijzenActief(p: {
   prijzen_tonen?: boolean | null;
@@ -151,6 +162,13 @@ export function berekenPrijs(i: PrijsInvoer, p: PrijsProfiel): PrijsUitkomst {
     }
   }
 
+  // Elk aanrechtblad wordt afgekit (08-10-2026), ongeacht wie het plaatst.
+  const hoekBlad = w.opstelling === 'hoek' || w.opstelling === 'u';
+  opbouw.push([
+    'werkblad afkitten',
+    (n.kitwerk ?? STANDAARD_KITWERK) + (hoekBlad ? n.kitwerk_hoek_extra ?? STANDAARD_KITWERK_HOEK : 0),
+  ]);
+
   opbouw.push(['fronten, lades en plinten', groot ? n.fronten_plinten.groot : n.fronten_plinten.klein]);
 
   const water = w.waterpunten ?? [];
@@ -185,6 +203,7 @@ export function berekenPrijs(i: PrijsInvoer, p: PrijsProfiel): PrijsUitkomst {
   const posten = [
     `${kasten} kasten ${w.levering === 'bouwpakket' ? 'in elkaar zetten, ' : ''}stellen en ophangen`,
     i.werkblad_door === 'monteur' ? 'werkblad op maat zagen en plaatsen' : null,
+    'werkblad, spatrand en aansluitingen afkitten',
     'fronten, lades en plinten afmonteren',
     water.length ? `aansluiten van ${water.join(', ')}` : null,
     overigeApparaten.length ? `inbouwen van ${overigeApparaten.join(', ')}` : null,

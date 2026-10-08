@@ -120,28 +120,30 @@ export async function verwerkBericht(
   if (uit.overdracht) signalen.add(uit.overdracht === 'klacht' || uit.overdracht === 'emotie' ? 'klacht' : 'twijfel');
   if (!(uit.confidence >= CONFIDENCE_DREMPEL)) signalen.add('twijfel');
 
-  // Nooit een leeg bericht: vraag dan gewoon naar wat er nog ontbreekt.
-  // Maar nooit twee keer hetzelfde terugvalbericht achter elkaar: zo liep de
-  // bot op 02-10-2026 vast op een IKEA-planner ("die zit er al bij").
+  // Nooit een leeg bericht: vraag dan naar wat er nog ontbreekt.
+  // Loopt de bot vast, dan draagt hij NIET over (08-10-2026, Maarten: de
+  // bot moet alles uit handen nemen; een overdracht omdat hij de foto's niet
+  // snapt, kost klanten). Hij vraagt steeds gerichter: eerst alle
+  // onderdelenlijsten en tekeningen, dan de aantallen getypt. Nooit twee
+  // keer hetzelfde bericht. Pas als de ladder op is, krijgt de monteur een
+  // seintje, maar het gesprek blijft bij de bot.
   let antwoord = uit.antwoord?.trim() || '';
   if (!antwoord) {
-    const terugval = terugvalVraag(kwalificatie, prijzen);
-    const vorigeBot = [...ctx.historie].reverse().find((h) => h.afzender === 'bot')?.tekst.trim();
-    if (vorigeBot === terugval) {
-      // De bot loopt vast en belooft dat de monteur ernaar kijkt. Dan is het
-      // ook echt een overdracht, geen seintje: de bot zwijgt vanaf nu en de
-      // monteur krijgt het hele gesprek met de bestanden (07-10-2026).
-      return {
-        soort: 'overdracht',
-        reden: 'lage_confidence',
-        samenvatting: vatSamen({ ...ctx, kwalificatie }, bericht, 'de bot liep vast en kon het bericht niet verwerken'),
-        kwalificatie,
-        klanttekst:
-          `Dank u, ik heb uw bericht ontvangen. Ik kan het nu niet goed verwerken; ` +
-          `${profiel.aanspreeknaam || 'de monteur'} kijkt ernaar en u hoort vandaag van ons.`,
-      };
+    const eerder = new Set(ctx.historie.filter((h) => h.afzender === 'bot').map((h) => h.tekst.trim()));
+    const ladder = terugvalLadder(kwalificatie, prijzen);
+    const volgende = ladder.find((t) => !eerder.has(t));
+    if (volgende) {
+      antwoord = volgende;
     } else {
-      antwoord = terugval;
+      // Ladder op: twee slotvarianten om en om, zodat er nooit twee keer
+      // hetzelfde staat. De monteur krijgt een seintje; de bot blijft praten.
+      const vorige = [...ctx.historie].reverse().find((h) => h.afzender === 'bot')?.tekst.trim();
+      const slot = [
+        `Dank u, ontvangen. Om u een prijs en datum te geven heb ik nog nodig: ${slotVraag(kwalificatie, prijzen)}.`,
+        `Ik heb het nog niet compleet. Kunt u kort typen: ${slotVraag(kwalificatie, prijzen)}?`,
+      ];
+      antwoord = slot[0] === vorige ? slot[1] : slot[0];
+      signalen.add('twijfel');
     }
   }
 
@@ -294,16 +296,34 @@ function hoofdletter(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function terugvalVraag(k: Kwalificatie, prijzen: boolean): string {
+function slotVraag(k: Kwalificatie, prijzen: boolean): string {
   const v = volgendVeld({ type_klus: 'montage', ...k }, prijzen);
-  if (!v) return 'Dank u. Ik zoek een paar momenten voor u uit.';
+  if (v === 'werk') return 'het aantal onderkasten, hangkasten en hoge kasten, en de lengte van de keuken';
+  return v ? veldUitleg(v) : 'welk moment u het beste past';
+}
+
+/**
+ * Terugvalberichten als het model geen bruikbaar antwoord gaf, van algemeen
+ * naar specifiek. De orchestrator stuurt de eerste die nog niet verstuurd is.
+ */
+function terugvalLadder(k: Kwalificatie, prijzen: boolean): string[] {
+  const v = volgendVeld({ type_klus: 'montage', ...k }, prijzen);
+  if (!v) return ['Dank u. Ik zoek een paar momenten voor u uit.', 'Dank u. Ik zet een paar momenten voor u klaar.'];
   if (v === 'werk' && k.tweedehands) {
-    return "Kunt u foto's sturen van de keuken zoals hij nu staat, van alle kanten? Dan kan ik u een prijs en een montagedatum geven.";
+    return [
+      "Kunt u foto's sturen van de keuken zoals hij nu staat, van alle kanten? Dan kan ik u een prijs en een montagedatum geven.",
+      "Ik kan op de foto's niet alle kasten goed tellen. Kunt u typen hoeveel onderkasten, hangkasten en hoge kasten er zijn, en hoe lang de keuken is?",
+      'Van welk materiaal is het werkblad, en hoe lang is de keuken ongeveer in meters?',
+    ];
   }
   if (v === 'werk') {
-    return 'Kunt u de onderdelenlijst of orderbevestiging van de keuken sturen, als foto of PDF? Dan kan ik u een prijs en een montagedatum geven.';
+    return [
+      'Kunt u alle onderdelenlijsten en tekeningen van de keuken sturen (bestellijst of orderbevestiging, alle pagina\'s, en de plattegrond)? Als PDF of foto. Dan kan ik u een prijs en een montagedatum geven.',
+      'Ik kan uit wat ik nu heb niet zeker opmaken welke kasten het zijn. Kunt u de volledige bestellijst uit de keukenplanner of de orderbevestiging van de leverancier sturen, met alle pagina\'s? Een PDF uit de mail is het beste.',
+      'Lukt dat niet, kunt u dan typen hoeveel onderkasten, hangkasten en hoge kasten er zijn, en hoe lang de keuken is?',
+    ];
   }
-  return `Kunt u mij nog laten weten: ${veldUitleg(v)}?`;
+  return [`Kunt u mij nog laten weten: ${veldUitleg(v)}?`, `Mag ik nog weten: ${veldUitleg(v)}? Dan kan ik verder.`];
 }
 
 function schoon<T extends object>(v: Partial<T> | undefined): Partial<T> {

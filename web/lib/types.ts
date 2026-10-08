@@ -23,6 +23,8 @@ export interface Uurnormen {
   opruimen: { klein: number; groot: number };
   werkblad: number;
   werkblad_hoek_extra: number;
+  kitwerk?: number;
+  kitwerk_hoek_extra?: number;
   eiland_extra: number;
   water_basis: number;
   waterpunt: number;

@@ -96,9 +96,15 @@ aanleggen, slopen) gaat altijd naar de monteur.
   plannen, nooit "laat maar weten als hij er is".
 - Een bedrijf dat structureel wil samenwerken (keukenhandel, aannemer):
   geen toezeggingen, seintje `wil_monteur`.
-- Lukt het model niet (geen bruikbaar antwoord), dan stuurt de bot nooit
-  twee keer dezelfde terugvalvraag. Loopt hij vast, dan zegt hij dat de monteur
-  ernaar kijkt en is het een overdracht, geen seintje (07-10-2026).
+- Weet de bot iets niet zeker (onduidelijke foto's, onvolledige lijst), dan
+  draagt hij niet over maar vraagt hij steeds gerichter: alle
+  onderdelenlijsten en tekeningen, dan de volledige bestellijst als PDF, dan
+  de aantallen kasten getypt. Nooit twee keer hetzelfde bericht. Is die
+  ladder op, dan krijgt de monteur een seintje en praat de bot verder
+  (08-10-2026; vervangt de overdracht bij vastlopen van 07-10-2026).
+- Elk aanrechtblad wordt afgekit; dat zit als vaste post in de
+  prijsindicatie (`kitwerk`, `kitwerk_hoek_extra`). Bouwpakketkasten (IKEA)
+  rekenen sinds 08-10-2026 met 1,5 / 1 / 2,5 uur per onder-, hang- en hoge kast.
 - Een seintje blijft kort (laatste bericht). Elke overdracht en elke inplanning
   bevat het volledige gesprek,
   en de foto's en PDF's van de klant komen als bijlage mee (alleen de bestanden
