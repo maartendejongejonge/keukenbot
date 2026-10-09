@@ -149,7 +149,9 @@ const wachtrij = new Map<string, { b: InkomendBericht; teksten: string[]; media:
  * lijst van drie foto's als één lijst.
  */
 async function ontvang(b: InkomendBericht) {
-  if (MONTEUR_WHATSAPP && b.vanNummer === MONTEUR_WHATSAPP) return;
+  // Staat het nummer van de monteur zelf in TESTNUMMERS, dan speelt hij klant
+  // (08-10-2026: Maarten heeft alleen zijn eigen nummer en het botnummer).
+  if (MONTEUR_WHATSAPP && b.vanNummer === MONTEUR_WHATSAPP && !isTester(b.vanNummer)) return;
 
   const sleutel = `${b.kanaalSleutel}|${b.vanNummer}`;
 
@@ -218,8 +220,9 @@ async function behandel(b: InkomendBericht) {
   const monteurId = kanaal.data.monteur_id;
   const info = await monteurInfo(monteurId);
 
-  // Berichten van de monteur zelf nooit als klantaanvraag behandelen.
-  if (b.vanNummer === MONTEUR_WHATSAPP || b.vanNummer === info.meldnummer) return;
+  // Berichten van de monteur zelf nooit als klantaanvraag behandelen,
+  // behalve als zijn nummer in TESTNUMMERS staat: dan test hij als klant.
+  if ((b.vanNummer === MONTEUR_WHATSAPP || b.vanNummer === info.meldnummer) && !isTester(b.vanNummer)) return;
 
   // Gepauzeerd in de beheerpagina: de bot antwoordt niet.
   if (!info.actief) {

@@ -191,6 +191,11 @@ Voor die nummers wijkt de bot op vier punten af van een echte klant:
 
 Seintjes en meldingen aan de monteur blijven zoals bij een echte klant.
 
+**Zelf testen met je eigen nummer:** zet je eigen nummer in `TESTNUMMERS`.
+Dan behandelt de bot jouw berichten als die van een klant, ook al is het je
+meldnummer. Seintjes en meldingen komen in hetzelfde gesprek binnen. Haal je
+nummer er na het testen weer uit.
+
 ## Waar we nu staan
 
 Het skelet is er: datamodel, kwalificatielogica, agendaregels en de
