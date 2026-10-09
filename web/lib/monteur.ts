@@ -71,5 +71,5 @@ export const PROFIEL_KOLOMMEN = [
   'buffer_dagdelen', 'inmeting_duur_min', 'montage_duur_dagdelen', 'profiel_ingevuld', 'toon', 'weigert',
   'google_agenda_id', 'whatsapp_nummer', 'hersteldag_na_meerdaagse', 'vertrek_postcode', 'km_tarief',
   'uurtarief', 'reisuur_percentage', 'gratis_pc4', 'hotel_richtprijs', 'prijzen_tonen', 'uurnormen',
-  'aanspreeknaam', 'advies', 'klusjes', 'transport', 'google_gekoppeld_op', 'google_email',
+  'aanspreeknaam', 'advies', 'klusjes', 'transport', 'google_gekoppeld_op', 'google_email', 'telefoon_voor_klanten',
 ].join(', ');

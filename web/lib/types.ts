@@ -72,6 +72,7 @@ export interface Profiel {
   prijzen_tonen: boolean;
   uurnormen: Uurnormen | null;
   aanspreeknaam: string | null;
+  telefoon_voor_klanten: boolean;
   advies: string[];
   klusjes: Klusjes | null;
   transport: Transport | null;

@@ -77,8 +77,15 @@ aanleggen, slopen) gaat altijd naar de monteur.
   De monteur krijgt een seintje, de bot praat verder.
 - Werk zonder uurnorm (leidingwerk, groep aanleggen): de bot geeft de prijs
   voor de montage en zegt dat dat werk er apart bij komt in de offerte.
-- Vraagt de klant naar de monteur: die is aan het werk en neemt contact op
-  zodra de datum staat. Geen telefoonnummer.
+- Wil de klant liever met de monteur zelf praten: staat
+  `telefoon_voor_klanten` aan (webinterface, bij "Jij"), dan geeft de bot het
+  nummer van de monteur, met de kanttekening dat hij overdag aan het werk is.
+  Staat het uit, dan neemt de monteur contact op zodra de datum staat
+  (09-10-2026). Seintje `wil_monteur` in beide gevallen.
+- Geen systeemwoorden tegen de klant ("bijschrift", "bestand", "systeem").
+- Vraagt de klant om werk te verzinnen of op een bedrag uit te komen: niet
+  beschuldigen, wel zeggen dat alleen nodig werk op de offerte komt, en
+  vragen of het nodig is (bij elektra: foto van de meterkast).
 - Past geen van de voorgestelde data: de bot zoekt zelf nieuwe, later.
 - Meerdere berichten of bestanden achter elkaar worden gebundeld en in één
   keer beantwoord (`BUNDEL_SECONDEN`, standaard 15). Alle foto's en PDF's uit

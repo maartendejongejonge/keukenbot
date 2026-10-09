@@ -26,7 +26,7 @@ import { overnachtingsAdvies, reis, samenvatting, type ReisProfiel } from './rei
 import type { Bezetting } from './planner.js';
 import {
   NIEUW_GESPREK_TEKST, RESET_TEKST, UPDATE_TEKST,
-  huidigeVersie, isReset, laatstGemeld, leesTestnummers, normaliseerNummer, onthoudGemeld,
+  huidigeVersie, isReset, laatstGemeld, leesbaarNummer, leesTestnummers, normaliseerNummer, onthoudGemeld,
 } from './testers.js';
 
 const env = (naam: string, verplicht = true): string => {
@@ -232,12 +232,18 @@ async function behandel(b: InkomendBericht) {
 
   const { data: profielRij } = await db
     .from('monteur_profielen')
-    .select('*, monteurs(bedrijfsnaam)')
+    .select('*, monteurs(bedrijfsnaam, telefoon)')
     .eq('monteur_id', monteurId)
     .single();
 
   if (!profielRij) return;
-  const profiel = { ...profielRij, bedrijfsnaam: (profielRij as any).monteurs?.bedrijfsnaam ?? null };
+  const profiel = {
+    ...profielRij,
+    bedrijfsnaam: (profielRij as any).monteurs?.bedrijfsnaam ?? null,
+    klant_telefoon: (profielRij as any).telefoon_voor_klanten
+      ? leesbaarNummer((profielRij as any).monteurs?.telefoon)
+      : null,
+  };
 
   let lead = await vindOfMaakLead(monteurId, kanaal.data.id, b.vanNummer);
 
@@ -516,7 +522,7 @@ const SEINTJE_UITLEG: Record<Signaal, string> = {
   prijsbezwaar: 'Prijsbezwaar. De bot heeft onderbouwd en gezegd dat de klant het bedrag met jou kan bespreken.',
   prijsvraag: 'Klant vraagt naar de prijs.',
   klacht: 'Klacht of boze klant. De bot heeft gezegd dat jij het bericht krijgt.',
-  wil_monteur: 'Klant vraagt naar jou. De bot heeft gezegd dat je contact opneemt zodra de datum staat.',
+  wil_monteur: 'Klant vraagt naar jou. De bot heeft je nummer gegeven (als dat aan staat) of gezegd dat je contact opneemt zodra de datum staat.',
   twijfel: 'De bot twijfelde over zijn antwoord. Kijk even mee.',
   extra_werk: 'Werk zonder vaste prijs; de bot heeft gezegd dat jij het apart in de offerte zet.',
   budget: 'Klant kan het bedrag niet betalen. Het gesprek is aan jou overgedragen.',

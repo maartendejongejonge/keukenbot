@@ -125,6 +125,7 @@ export async function slaOp(_: Opslagstaat, f: FormData): Promise<Opslagstaat> {
   const m = await supabase.from('monteurs').update({ contactnaam, telefoon }).eq('id', monteur.id);
   const p = await supabase.from('monteur_profielen').update({
     aanspreeknaam, toon, weigert, advies,
+    telefoon_voor_klanten: vink(f, 'telefoon_voor_klanten'),
     werkdagen, werkdag_start, werkdag_eind,
     vertrek_postcode, werkgebied_pc4: werkgebied.lijst, max_reistijd_min,
     inmeting_duur_min,

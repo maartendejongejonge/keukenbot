@@ -57,6 +57,7 @@ export function Instellingen({ monteur, profiel: p }: { monteur: Monteur; profie
             {veld('aanspreeknaam', 'Naam voor klanten', <input id="aanspreeknaam" name="aanspreeknaam" defaultValue={p.aanspreeknaam ?? ''} placeholder="Bijvoorbeeld Jos" />, 'De bot zegt: "Jos neemt contact met u op."')}
             {veld('telefoon', 'Je eigen mobiele nummer', <input id="telefoon" name="telefoon" type="tel" defaultValue={nummer(monteur.telefoon)} placeholder="06-12345678" autoComplete="tel" />, 'Hier stuurt de bot seintjes en ingeplande afspraken naartoe via WhatsApp.')}
           </div>
+          <label><input type="checkbox" name="telefoon_voor_klanten" defaultChecked={p.telefoon_voor_klanten ?? false} /> Klanten mogen dit nummer krijgen als ze liever met jou zelf praten</label>
         </div>
       </details>
 

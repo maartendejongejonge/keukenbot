@@ -15,6 +15,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { createClient } from '@supabase/supabase-js';
 import { verwerkBericht, type LeadContext } from './orchestrator.js';
 import { duidBericht } from './model.js';
+import { leesbaarNummer } from './testers.js';
 import { prijzenActief, type PrijsProfiel, type Uurnormen } from './prijs.js';
 import type { ReisProfiel } from './reiskosten.js';
 
@@ -34,14 +35,18 @@ const gesprekken: Gesprek[] = JSON.parse(readFileSync('test/voorbeeldgesprekken.
 const db = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 const { data: rij, error } = await db
   .from('monteur_profielen')
-  .select('*, monteurs!inner(bedrijfsnaam)')
+  .select('*, monteurs!inner(bedrijfsnaam, telefoon)')
   .eq('monteurs.bedrijfsnaam', 'Rotterdam Keukenmontage')
   .single();
 if (error || !rij) {
   console.error('Profiel van Rotterdam Keukenmontage niet gevonden:', error?.message);
   process.exit(1);
 }
-const profiel = { ...rij, bedrijfsnaam: (rij as any).monteurs?.bedrijfsnaam ?? null };
+const profiel = {
+  ...rij,
+  bedrijfsnaam: (rij as any).monteurs?.bedrijfsnaam ?? null,
+  klant_telefoon: (rij as any).telefoon_voor_klanten ? leesbaarNummer((rij as any).monteurs?.telefoon) : null,
+};
 
 const reisProfiel: ReisProfiel | null = profiel.vertrek_postcode
   ? {

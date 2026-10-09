@@ -74,3 +74,12 @@ export function laatstGemeld(bestand: string): string | null {
 export function onthoudGemeld(bestand: string, versie: string): void {
   writeFileSync(bestand, versie + '\n');
 }
+
+/** 31612345678 → 06-12345678, voor in een bericht aan een klant. */
+export function leesbaarNummer(n: string | null | undefined): string | null {
+  if (!n) return null;
+  const d = normaliseerNummer(n);
+  if (/^316\d{8}$/.test(d)) return `06-${d.slice(3)}`;
+  if (/^31\d{9}$/.test(d)) return `0${d.slice(2, 4)}-${d.slice(4)}`;
+  return `+${d}`;
+}
