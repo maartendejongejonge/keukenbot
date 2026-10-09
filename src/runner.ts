@@ -17,7 +17,7 @@ import { verwerkBericht, zoekMomenten, type Besluit, type LeadContext, type Sign
 import { formuleerVoorstel, vervaltOp } from './planner.js';
 import { CONFIDENCE_DREMPEL, systeemprompt, type Kwalificatie, type PrijsContext } from './kwalificatie.js';
 import { keuzePrompt, leesKeuze, omschrijfSlot, snelleKeuze, type KeuzeUitkomst } from './keuze.js';
-import { mediaNaarTekst } from './media.js';
+import { bundelNaarTekst, type BundelMedia } from './media.js';
 import { bestandenVan, bewaarBestand, leesBytes, markeerVerstuurd, ruimBestandenOp, wisBestanden } from './bestanden.js';
 import { duidBericht } from './model.js';
 import { prijsOpbouw, prijzenActief, type PrijsProfiel, type Prijsindicatie, type Uurnormen } from './prijs.js';
@@ -140,11 +140,13 @@ async function start() {
 
 // ------------------------------------------------------- binnenkomst
 
-const wachtrij = new Map<string, { b: InkomendBericht; delen: Promise<string>[]; timer: NodeJS.Timeout }>();
+const wachtrij = new Map<string, { b: InkomendBericht; teksten: string[]; media: BundelMedia[]; timer: NodeJS.Timeout }>();
 
 /**
- * Elk bericht komt hier binnen. Media worden meteen uitgelezen (parallel);
- * het antwoord volgt pas als de klant even niets meer stuurt.
+ * Elk bericht komt hier binnen. Foto's en bestanden worden meteen gedownload
+ * en bewaard; het uitlezen gebeurt pas als de klant even niets meer stuurt,
+ * en dan voor de hele bundel in één keer (08-10-2026). Zo telt het model een
+ * lijst van drie foto's als één lijst.
  */
 async function ontvang(b: InkomendBericht) {
   if (MONTEUR_WHATSAPP && b.vanNummer === MONTEUR_WHATSAPP) return;
@@ -162,17 +164,19 @@ async function ontvang(b: InkomendBericht) {
     return;
   }
 
-  const deel = b.media ? mediaBinnen(b) : Promise.resolve(b.tekst);
   const bestaand = wachtrij.get(sleutel);
   if (bestaand) clearTimeout(bestaand.timer);
 
-  const item = bestaand ?? { b, delen: [], timer: undefined as unknown as NodeJS.Timeout };
-  item.delen.push(deel);
+  const item = bestaand ?? { b, teksten: [], media: [], timer: undefined as unknown as NodeJS.Timeout };
+  if (b.media) item.media.push(mediaBinnen(b));
+  else if (b.tekst.trim()) item.teksten.push(b.tekst);
+
   item.timer = setTimeout(async () => {
     wachtrij.delete(sleutel);
-    const teksten = (await Promise.all(item.delen)).filter((t) => t.trim());
-    if (!teksten.length) return;
     try {
+      const uitgelezen = await bundelNaarTekst(item.media);
+      const teksten = [...item.teksten, uitgelezen].filter((t) => t.trim());
+      if (!teksten.length) return;
       await behandel({ ...item.b, tekst: teksten.join('\n\n'), media: undefined });
     } catch (e) {
       console.error('verwerken mislukt:', String(e));
@@ -182,17 +186,17 @@ async function ontvang(b: InkomendBericht) {
 }
 
 /**
- * Een foto of bestand: één keer downloaden, een kopie bewaren voor de monteur
- * (die krijgt het origineel bij een seintje), en laten uitlezen voor de bot.
+ * Een foto of bestand: meteen downloaden (één keer) en een kopie bewaren voor
+ * de monteur. Uitlezen gebeurt later, samen met de rest van de bundel.
  */
-async function mediaBinnen(b: InkomendBericht): Promise<string> {
+function mediaBinnen(b: InkomendBericht): BundelMedia {
   const media = b.media!;
   const bytes = media.download();
   bytes.then(
     (buf) => bewaarBestand(b.vanNummer, buf, media),
     (e) => console.error('media downloaden mislukt:', String(e)),
   );
-  return mediaNaarTekst({ ...media, download: () => bytes }, b.tekst);
+  return { media: { ...media, download: () => bytes }, bijschrift: b.tekst };
 }
 
 // ------------------------------------------------------------- per bericht
@@ -538,8 +542,8 @@ function kortBestandsinhoud(tekst: string, achter = ' (bijlage hieronder)'): str
   return tekst
     // Uitgelezen inhoud loopt tot [einde bestand]; oudere berichten hebben die
     // markering niet, daar loopt hij tot het volgende bestand of het einde.
-    .replace(/\n\[inhoud van het bestand, automatisch uitgelezen[^\]]*\][\s\S]*?(\n\[einde bestand\]|(?=\n\n\[klant stuurde)|$)/g, achter)
-    .replace(/\n\[(uitlezen mislukt|bestandstype)[^\]]*\]/g, achter);
+    .replace(/\n\[inhoud van (het bestand|de bestanden), automatisch uitgelezen[^\]]*\][\s\S]*?(\n\[einde bestand\]|(?=\n\n\[klant stuurde)|$)/g, achter)
+    .replace(/\n\[(uitlezen (van [^\]]* )?mislukt|bestandstype|een bestand kon niet|[^\]]* is te groot om uit te lezen)[^\]]*\]/g, achter);
 }
 
 /** Het hele gesprek als leesbare tekst, voor een melding aan de monteur. */

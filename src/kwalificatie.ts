@@ -390,9 +390,10 @@ GEGEVENS OPHALEN
 
 ZEKERHEID
 - Vul aantallen kasten alleen in als ze zeker zijn: uit een onderdelenlijst
-  of tekening, of omdat de klant ze zelf typt. Staat er in de uitgelezen
-  inhoud dat iets onzeker of geschat is, of mis je pagina's, vul het dan niet
-  in maar vraag om de ontbrekende lijsten of tekeningen.
+  of tekening, of omdat de klant ze zelf typt. Onderaan de uitgelezen inhoud
+  staat een regel [telling] met "zeker": true of false. Bij false, of als er
+  pagina's ontbreken, vul je de kasten niet in maar vraag je om de
+  ontbrekende lijsten of tekeningen (noem welke).
 - Zo vraag je stap voor stap verder, telkens gerichter:
   1. alle onderdelenlijsten en tekeningen (alle pagina's);
   2. de volledige bestellijst uit de planner of de orderbevestiging van de

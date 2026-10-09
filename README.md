@@ -81,7 +81,10 @@ aanleggen, slopen) gaat altijd naar de monteur.
   zodra de datum staat. Geen telefoonnummer.
 - Past geen van de voorgestelde data: de bot zoekt zelf nieuwe, later.
 - Meerdere berichten of bestanden achter elkaar worden gebundeld en in één
-  keer beantwoord (`BUNDEL_SECONDEN`, standaard 15).
+  keer beantwoord (`BUNDEL_SECONDEN`, standaard 15). Alle foto's en PDF's uit
+  zo'n bundel worden in één aanroep samen uitgelezen (08-10-2026), zodat een
+  lijst over drie foto's als één lijst geteld wordt en ontbrekende pagina's
+  opvallen. Model: `CLAUDE_MODEL_MEDIA` (los van het gespreksmodel).
 - De voorgestelde momenten zijn genummerd. Kiest de klant er één (nummer of
   eigen woorden), dan gaat de afspraak in Google Agenda, vervallen de andere
   reserveringen en krijgt de monteur een bevestiging. Past geen moment, dan
@@ -156,6 +159,16 @@ De uitslag staat daarna in `test/uitslag.md`: per beurt wat de bot zegt,
 wat Maarten destijds zei, en waarop je het antwoord beoordeelt. Draai hem na
 elke wijziging aan de prompt.
 
+## Uitleestest
+
+`npm run test:uitlezen` leest echte onderdelenlijsten en tekeningen uit en
+vergelijkt de telling (onder-, hang-, hoge kasten, levering, zeker) met wat
+je zelf telde. De bestanden staan alleen op de server in `test/bestanden/`
+(niet in GitHub: klantgegevens), met `test/bestanden/verwacht.json` naar het
+voorbeeld in `test/bestanden.voorbeeld.json`. Uitslag in
+`test/bestanden/uitslag.md`. Met `CLAUDE_MODEL_MEDIA=... npm run test:uitlezen`
+vergelijk je modellen.
+
 Offertes, meerwerk en facturen komen later. Eerst moet dit ene ding goed werken.
 
 ## Stresstest met vrienden (05-10-2026)
@@ -217,7 +230,8 @@ src/gesprekken.test.ts              echte gesprekken afspelen tegen de bot (npm 
 test/voorbeeldgesprekken.json       11 geanonimiseerde klantgesprekken
 src/prijs.ts                        prijsindicatie uit uurnormen (alleen als de monteur dat aanzet)
 src/prijs.test.ts                   rekentest op de referentiekeukens (npm run test:prijs)
-src/media.ts                        foto's en PDF's van klanten laten uitlezen
+src/media.ts                        foto's en PDF's van klanten laten uitlezen (per bundel samen)
+src/uitlezen.test.ts                uitleestest op echte lijsten (npm run test:uitlezen)
 src/bestanden.ts                    bestanden van klanten bewaren en doorsturen naar de monteur
 src/keuze.ts                        welk voorgesteld moment kiest de klant
 src/planner.ts                      werktijden, reistijd, buffer, vrije momenten

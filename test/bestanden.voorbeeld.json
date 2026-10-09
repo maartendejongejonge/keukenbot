@@ -1,0 +1,26 @@
+[
+  {
+    "id": "ikea-recht-3-fotos",
+    "omschrijving": "IKEA-bestellijst in drie foto's, rechte keuken",
+    "bestanden": ["ikea-recht-1.jpg", "ikea-recht-2.jpg", "ikea-recht-3.jpg"],
+    "verwacht": { "onderkasten": 5, "hangkasten": 3, "hoge_kasten": 0, "levering": "bouwpakket", "zeker": true }
+  },
+  {
+    "id": "nobilia-orderbevestiging",
+    "omschrijving": "Orderbevestiging Nobilia als PDF plus plattegrond",
+    "bestanden": ["nobilia-order.pdf", "nobilia-plattegrond.jpg"],
+    "verwacht": { "onderkasten": 8, "hangkasten": 4, "hoge_kasten": 2, "levering": "voorgemonteerd", "zeker": true }
+  },
+  {
+    "id": "alleen-3d-plaatje",
+    "omschrijving": "Alleen een 3D-impressie: het model moet 'onzeker' zeggen",
+    "bestanden": ["impressie.jpg"],
+    "verwacht": { "zeker": false }
+  },
+  {
+    "id": "lijst-pagina-ontbreekt",
+    "omschrijving": "Pagina 1 en 3 van een lijst van 3: moet 'onzeker' zijn",
+    "bestanden": ["lijst-p1.jpg", "lijst-p3.jpg"],
+    "verwacht": { "zeker": false }
+  }
+]

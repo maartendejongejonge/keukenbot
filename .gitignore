@@ -4,3 +4,6 @@ dist/
 /auth/
 laatste-testmelding.txt
 /bestanden/
+
+# echte klantbestanden voor de uitleestest: nooit in de openbare repo
+/test/bestanden/
