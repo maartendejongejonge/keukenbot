@@ -1,11 +1,19 @@
 /**
- * Uitleestest: leest echte onderdelenlijsten en tekeningen uit en vergelijkt
- * de telling met wat jij zelf hebt geteld. Zo weet je of het uitlezen (en een
- * ander model in CLAUDE_MODEL_MEDIA) echt beter wordt.
+ * Uitleestest: laat zien wat Pico uit een document of foto haalt.
  *
- * De bestanden zelf staan NIET in GitHub (de repo is openbaar en het zijn
- * klantgegevens). Zet ze op de server in test/bestanden/ met daarnaast
- * test/bestanden/verwacht.json, in het formaat van test/bestanden.voorbeeld.json.
+ * Zonder verwacht.json (de gewone manier): elk bestand in test/bestanden/
+ * wordt los uitgelezen, en je ziet per bestand de volledige samenvatting en
+ * de telling. Die controleer je zelf.
+ *
+ *   sudo -u keukenbot -H bash -c 'cd /opt/keukenbot && npm run test:uitlezen'
+ *   ... npm run test:uitlezen -- ikea      (alleen bestanden met dit woord in de naam)
+ *
+ * Met test/bestanden/verwacht.json (optioneel, formaat zie
+ * test/bestanden.voorbeeld.json) worden bestanden per set samen gelezen en
+ * vergeleken met jouw eigen telling.
+ *
+ * De bestanden staan NIET in GitHub (de repo is openbaar en het zijn
+ * klantgegevens).
  *
  *   sudo -u keukenbot -H bash -c 'cd /opt/keukenbot && npm run test:uitlezen'
  *   ... npm run test:uitlezen -- ikea          (alleen sets met dit woord in de id)
@@ -14,7 +22,7 @@
  * Uitslag in beeld en in test/bestanden/uitslag.md.
  */
 
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { extname, join } from 'node:path';
 import { leesBestanden, leesTelling, mediaModel, type TeLezen, type Telling } from './media.js';
 
@@ -34,8 +42,8 @@ interface Set {
 
 const MAP = 'test/bestanden';
 const MANIFEST = join(MAP, 'verwacht.json');
-if (!existsSync(MANIFEST)) {
-  console.error(`${MANIFEST} ontbreekt. Zet je testbestanden in ${MAP}/ en maak verwacht.json naar het voorbeeld in test/bestanden.voorbeeld.json.`);
+if (!existsSync(MAP)) {
+  console.error(`Map ${MAP}/ bestaat niet. Zet daar de documenten en foto's die je wilt laten uitlezen.`);
   process.exit(1);
 }
 
@@ -44,7 +52,20 @@ const MIME: Record<string, string> = {
 };
 
 const filter = process.argv[2];
-const sets: Set[] = JSON.parse(readFileSync(MANIFEST, 'utf8')).filter((s: Set) => !filter || s.id.includes(filter));
+const metVerwachting = existsSync(MANIFEST);
+const sets: Set[] = (metVerwachting
+  ? JSON.parse(readFileSync(MANIFEST, 'utf8'))
+  : readdirSync(MAP)
+      .filter((n) => MIME[extname(n).toLowerCase()])
+      .sort()
+      .map((n) => ({ id: n, bestanden: [n], verwacht: {} }))
+).filter((s: Set) => !filter || s.id.includes(filter));
+
+if (!sets.length) {
+  console.error(`Geen bestanden gevonden in ${MAP}/ (pdf, jpg, png, webp, gif)${filter ? ` met "${filter}" in de naam` : ''}.`);
+  process.exit(1);
+}
+console.log(`${sets.length} ${metVerwachting ? 'sets' : 'bestanden'} uitlezen met ${mediaModel()}. Dit duurt per bestand 10 tot 60 seconden.`);
 const VELDEN: (keyof Telling)[] = ['onderkasten', 'hangkasten', 'hoge_kasten', 'levering', 'zeker'];
 
 const md: string[] = [`# Uitleestest\n\nModel: \`${mediaModel()}\`, ${new Date().toISOString().slice(0, 16).replace('T', ' ')}\n`];
@@ -58,6 +79,7 @@ for (const s of sets) {
     bestandsnaam: naam,
   }));
 
+  console.log(`\n--- ${s.id}: bezig...`);
   let tekst = '';
   let telling: Telling | null = null;
   const start = Date.now();
@@ -79,21 +101,28 @@ for (const s of sets) {
   });
   const alles = regels.every((r) => r.ok);
 
-  console.log(`\n${alles ? 'GOED' : 'FOUT'}  ${s.id} (${s.bestanden.length} bestanden, ${sec} s)`);
-  for (const r of regels) console.log(`  ${r.ok ? '✓' : '✗'} ${r.v}: verwacht ${r.verwacht}, kreeg ${r.gekregen ?? '—'}`);
-  if (!telling) console.log('  geen [telling]-regel gevonden');
+  if (regels.length) {
+    console.log(`${alles ? 'GOED' : 'FOUT'}  ${s.id} (${s.bestanden.length} bestanden, ${sec} s)`);
+    for (const r of regels) console.log(`  ${r.ok ? '✓' : '✗'} ${r.v}: verwacht ${r.verwacht}, kreeg ${r.gekregen ?? '—'}`);
+  } else {
+    // Geen verwachting: laat zien wat Pico ervan maakt, jij controleert.
+    console.log(`(${sec} s)\n${tekst}`);
+  }
+  if (!telling) console.log('  let op: geen [telling]-regel gevonden; Pico weet dan niet of de aantallen zeker zijn');
 
   md.push(
-    `## ${alles ? '✓' : '✗'} ${s.id}\n`,
+    `## ${regels.length ? (alles ? '✓ ' : '✗ ') : ''}${s.id}\n`,
     s.omschrijving ? `${s.omschrijving}\n` : '',
     `Bestanden: ${s.bestanden.join(', ')} (${sec} s)\n`,
-    '| veld | verwacht | gekregen |', '| --- | --- | --- |',
-    ...regels.map((r) => `| ${r.ok ? '' : '**'}${r.v}${r.ok ? '' : '**'} | ${r.verwacht} | ${r.gekregen ?? '—'} |`),
-    '', '<details><summary>Samenvatting</summary>\n', '```', tekst, '```', '</details>\n',
+    ...(regels.length
+      ? ['| veld | verwacht | gekregen |', '| --- | --- | --- |',
+         ...regels.map((r) => `| ${r.ok ? '' : '**'}${r.v}${r.ok ? '' : '**'} | ${r.verwacht} | ${r.gekregen ?? '—'} |`), '']
+      : []),
+    '```', tekst, '```\n',
   );
 }
 
-const score = `${goed} van ${totaal} velden goed`;
-console.log(`\n${score}. Uitslag in ${join(MAP, 'uitslag.md')}`);
+const score = totaal ? `${goed} van ${totaal} velden goed` : `${sets.length} bestanden uitgelezen`;
+console.log(`\n${score}. Alles nog eens rustig nalezen: ${join(MAP, 'uitslag.md')}`);
 md.splice(1, 0, `**${score}**\n`);
 writeFileSync(join(MAP, 'uitslag.md'), md.join('\n'));

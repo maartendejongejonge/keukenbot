@@ -161,13 +161,13 @@ elke wijziging aan de prompt.
 
 ## Uitleestest
 
-`npm run test:uitlezen` leest echte onderdelenlijsten en tekeningen uit en
-vergelijkt de telling (onder-, hang-, hoge kasten, levering, zeker) met wat
-je zelf telde. De bestanden staan alleen op de server in `test/bestanden/`
-(niet in GitHub: klantgegevens), met `test/bestanden/verwacht.json` naar het
-voorbeeld in `test/bestanden.voorbeeld.json`. Uitslag in
-`test/bestanden/uitslag.md`. Met `CLAUDE_MODEL_MEDIA=... npm run test:uitlezen`
-vergelijk je modellen.
+`npm run test:uitlezen` laat zien wat Pico uit documenten en foto's haalt.
+Zet ze op de server in `/opt/keukenbot/test/bestanden/` (niet in GitHub:
+klantgegevens). Elk bestand wordt los uitgelezen; per bestand zie je de
+samenvatting en de telling, en controleer je zelf of het klopt. Alles staat
+daarna ook in `test/bestanden/uitslag.md`. Met `-- ikea` lees je alleen
+bestanden met dat woord in de naam. Optioneel: een `verwacht.json` (zie
+`test/bestanden.voorbeeld.json`) om automatisch te vergelijken.
 
 Offertes, meerwerk en facturen komen later. Eerst moet dit ene ding goed werken.
 
