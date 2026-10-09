@@ -48,7 +48,7 @@ if (!existsSync(MAP)) {
 }
 
 const MIME: Record<string, string> = {
-  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.gif': 'image/gif', '.pdf': 'application/pdf',
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.jfif': 'image/jpeg', '.jpe': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.gif': 'image/gif', '.pdf': 'application/pdf',
 };
 
 const filter = process.argv[2];
@@ -62,7 +62,7 @@ const sets: Set[] = (metVerwachting
 ).filter((s: Set) => !filter || s.id.includes(filter));
 
 if (!sets.length) {
-  console.error(`Geen bestanden gevonden in ${MAP}/ (pdf, jpg, png, webp, gif)${filter ? ` met "${filter}" in de naam` : ''}.`);
+  console.error(`Geen bestanden gevonden in ${MAP}/ (pdf, jpg, jfif, png, webp, gif)${filter ? ` met "${filter}" in de naam` : ''}.`);
   process.exit(1);
 }
 console.log(`${sets.length} ${metVerwachting ? 'sets' : 'bestanden'} uitlezen met ${mediaModel()}. Dit duurt per bestand 10 tot 60 seconden.`);

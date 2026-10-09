@@ -40,7 +40,28 @@ export function mediaModel(): string {
 }
 
 export function kanLezen(mime: string): boolean {
-  return mime === 'application/pdf' || AFBEELDING_TYPES.includes(mime);
+  return mime === 'application/pdf' || AFBEELDING_TYPES.includes(mime) || twijfelType(mime);
+}
+
+/** Types waarvan we de echte inhoud aan de eerste bytes herkennen (.jfif, pjpeg, onbekend). */
+function twijfelType(mime: string): boolean {
+  return !mime || mime === 'application/octet-stream' || mime === 'image/pjpeg' || mime === 'image/jpg' || mime === 'image/jfif';
+}
+
+/**
+ * Het echte type aan de eerste bytes. Klanten sturen .jfif-, .jpe- of
+ * naamloze bestanden die gewoon JPEG zijn; WhatsApp geeft die soms als
+ * document met een vaag type door (09-10-2026).
+ */
+export function echtType(bytes: Buffer, mime: string): string {
+  if (bytes.length >= 4) {
+    if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return 'image/jpeg';
+    if (bytes.subarray(0, 4).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47]))) return 'image/png';
+    if (bytes.subarray(0, 4).toString('latin1') === '%PDF') return 'application/pdf';
+    if (bytes.subarray(0, 3).toString('latin1') === 'GIF') return 'image/gif';
+    if (bytes.length >= 12 && bytes.subarray(0, 4).toString('latin1') === 'RIFF' && bytes.subarray(8, 12).toString('latin1') === 'WEBP') return 'image/webp';
+  }
+  return mime;
 }
 
 const UITLEES_PROMPT = `Je leest de bestanden die een klant via WhatsApp naar een keukenmonteur stuurde. Meestal zijn het een onderdelenlijst/bestellijst van de keuken (vaak verdeeld over meerdere foto's of pagina's), een plattegrond/keukentekening, of foto's van de ruimte.
@@ -107,7 +128,8 @@ export function leesTelling(tekst: string): Telling | null {
   }
 }
 
-function blokVoor(f: TeLezen): Record<string, unknown> {
+function blokVoor(x: TeLezen): Record<string, unknown> {
+  const f = { ...x, mime: echtType(x.bytes, x.mime) };
   if (f.mime === 'application/pdf') {
     if (f.bytes.length > MAX_PDF) throw new Error('PDF te groot');
     return { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: f.bytes.toString('base64') } };
@@ -213,12 +235,17 @@ export async function bundelNaarTekst(bundel: BundelMedia[]): Promise<string> {
     }
     try {
       const bytes = await b.media.download();
-      const max = b.media.mime === 'application/pdf' ? MAX_PDF : MAX_AFBEELDING;
+      const mime = echtType(bytes, b.media.mime);
+      if (!AFBEELDING_TYPES.includes(mime) && mime !== 'application/pdf') {
+        meldingen.push(`[bestandstype ${b.media.mime || 'onbekend'} kan niet worden uitgelezen; vraag de klant om een PDF of foto]`);
+        continue;
+      }
+      const max = mime === 'application/pdf' ? MAX_PDF : MAX_AFBEELDING;
       if (bytes.length > max) {
         meldingen.push(`[${b.media.bestandsnaam || 'een bestand'} is te groot om uit te lezen; vraag de klant het als PDF of kleinere foto te sturen]`);
         continue;
       }
-      leesbaar.push({ bytes, mime: b.media.mime, bestandsnaam: b.media.bestandsnaam, bijschrift: b.bijschrift });
+      leesbaar.push({ bytes, mime, bestandsnaam: b.media.bestandsnaam, bijschrift: b.bijschrift });
     } catch (e) {
       console.error('media downloaden mislukt:', String(e));
       meldingen.push('[een bestand kon niet worden gedownload; vraag de klant het opnieuw te sturen]');
