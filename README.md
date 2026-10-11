@@ -176,7 +176,39 @@ daarna ook in `test/bestanden/uitslag.md`. Met `-- ikea` lees je alleen
 bestanden met dat woord in de naam. Optioneel: een `verwacht.json` (zie
 `test/bestanden.voorbeeld.json`) om automatisch te vergelijken.
 
-Offertes, meerwerk en facturen komen later. Eerst moet dit ene ding goed werken.
+## Offertevoorstel (besloten 11-10-2026)
+
+Na het inplannen van een **montage** maakt Pico een offerte en stuurt die als
+**concept** naar het meldnummer van de monteur: eerst een bericht met het
+totaal en een controlelijst, daarna de PDF. **Pico stuurt nooit een offerte
+naar de klant.** De monteur controleert, past zo nodig aan en stuurt hem zelf.
+De klant hoort bij de bevestiging alleen dat de monteur de offerte stuurt.
+
+- `src/offerte.ts` laat Claude alleen de aantallen uit de onderdelenlijst en
+  het gesprek halen (kasten, lades, fronten, werkblad, panelen, apparaten).
+  Het rekenen gebeurt met vaste stukprijzen (`STANDAARD_TARIEVEN`), op de
+  bovenkant van marktconform. Referentie: de IKEA-keuken met 19 kasten,
+  achterwand, LED en 4 apparaten komt op € 2.778 excl. btw.
+- Werk zonder stukprijs (leidingwerk, groep, slopen) komt niet in het bedrag;
+  de controlelijst zegt wat je er zelf bij moet zetten. Meerwerk staat in de
+  voorwaarden tegen het uurtarief.
+- Aanzetten per monteur: `monteur_profielen.offerte` met `"aan": true`
+  (migratie 0009 doet dat voor Rotterdam Keukenmontage). Stukprijzen per
+  monteur aanpassen kan met `"tarieven": {...}` in dezelfde kolom.
+- Adres, KvK en btw-id staan niet in deze openbare repo. Eenmalig in de
+  SQL-editor van Supabase:
+
+  ```sql
+  update monteur_profielen p
+  set offerte = p.offerte || '{"adres": "...", "postcode_plaats": "...", "kvk": "...", "btw_id": "..."}'::jsonb
+  from monteurs m where m.id = p.monteur_id and m.bedrijfsnaam = 'Rotterdam Keukenmontage';
+  ```
+
+- Testen zonder WhatsApp: `npm run test:offerte` (rekentest, PDF in
+  `test/offerte-voorbeeld.pdf`) of `npm run test:offerte -- "test/ikea test 1.pdf"`
+  (leest een echte lijst met Claude uit).
+
+Facturen komen later. Eerst moet dit ene ding goed werken.
 
 ## Stresstest met vrienden (05-10-2026)
 
@@ -229,6 +261,7 @@ besluitvorming. Wat nog ontbreekt is het proces dat alles aan elkaar knoopt.
 | Tweedehands, transport, budget naar monteur | af (03-10-2026) |
 | Stresstest met vrienden | goedgekeurd (06-10-2026) |
 | Webinterface voor monteurs | gebouwd (06-10-2026), nog op Vercel zetten; zie `web/README.md` |
+| Offertevoorstel na inplannen (concept naar monteur) | af (11-10-2026), alleen aan voor Rotterdam Keukenmontage |
 | Meerdere WhatsApp-nummers in de runner | nog te doen (of meteen de officiële API) |
 
 ## De bestanden
@@ -242,6 +275,8 @@ src/gesprekken.test.ts              echte gesprekken afspelen tegen de bot (npm 
 test/voorbeeldgesprekken.json       11 geanonimiseerde klantgesprekken
 src/prijs.ts                        prijsindicatie uit uurnormen (alleen als de monteur dat aanzet)
 src/prijs.test.ts                   rekentest op de referentiekeukens (npm run test:prijs)
+src/offerte.ts                      offertevoorstel: stuklijst uitlezen, rekenen, PDF (concept naar monteur)
+src/offerte.test.ts                 rekentest + voorbeeld-PDF (npm run test:offerte)
 src/media.ts                        foto's en PDF's van klanten laten uitlezen (per bundel samen)
 src/uitlezen.test.ts                uitleestest op echte lijsten (npm run test:uitlezen)
 src/bestanden.ts                    bestanden van klanten bewaren en doorsturen naar de monteur

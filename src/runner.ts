@@ -17,7 +17,8 @@ import { verwerkBericht, zoekMomenten, type Besluit, type LeadContext, type Sign
 import { formuleerVoorstel, vervaltOp } from './planner.js';
 import { CONFIDENCE_DREMPEL, systeemprompt, type Kwalificatie, type PrijsContext } from './kwalificatie.js';
 import { keuzePrompt, leesKeuze, omschrijfSlot, snelleKeuze, type KeuzeUitkomst } from './keuze.js';
-import { bundelNaarTekst, type BundelMedia } from './media.js';
+import { bundelNaarTekst, echtType, type BundelMedia, type TeLezen } from './media.js';
+import { berekenOfferte, berichtVoorMonteur, leesStuklijst, offerteActief, offertePdf, offertenummer, type OfferteContext, type OfferteProfiel } from './offerte.js';
 import { bestandenVan, bewaarBestand, leesBytes, markeerVerstuurd, ruimBestandenOp, wisBestanden } from './bestanden.js';
 import { duidBericht } from './model.js';
 import { prijsOpbouw, prijzenActief, type PrijsProfiel, type Prijsindicatie, type Uurnormen } from './prijs.js';
@@ -232,7 +233,7 @@ async function behandel(b: InkomendBericht) {
 
   const { data: profielRij } = await db
     .from('monteur_profielen')
-    .select('*, monteurs(bedrijfsnaam, telefoon)')
+    .select('*, monteurs(bedrijfsnaam, telefoon, email)')
     .eq('monteur_id', monteurId)
     .single();
 
@@ -660,7 +661,7 @@ async function bevestig(b: InkomendBericht, lead: any, profiel: any, gekozen: an
   const tekst =
     gekozen.soort === 'montage'
       ? `Genoteerd: de montage begint ${omschrijfSlot({ soort: 'inmeting', start }).split(' om ')[0]}${duur}. ` +
-        `${naam} neemt vooraf contact met u op over de laatste details. Wilt u het adres nog sturen?`
+        `${naam} neemt vooraf contact met u op over de laatste details${offerteActief(profiel) ? ' en stuurt u de offerte' : ''}. Wilt u het adres nog sturen?`
       : gekozen.soort === 'klusje'
       ? `Genoteerd: ${naam} komt ${omschrijfSlot({ soort: 'inmeting', start })} langs. Wilt u het adres nog sturen?`
       : `Genoteerd: ${naam} komt ${omschrijfSlot({ soort: 'inmeting', start })} inmeten. Wilt u het adres nog sturen?`;
@@ -674,6 +675,65 @@ async function bevestig(b: InkomendBericht, lead: any, profiel: any, gekozen: an
       `\n\n${await gesprekVoorMonteur(lead.id)}`,
   );
   await bestandenNaarMonteur(monteurId, lead);
+  if (gekozen.soort === 'montage' && offerteActief(profiel)) await offertevoorstel(monteurId, lead, profiel);
+}
+
+/**
+ * Offertevoorstel als CONCEPT naar de monteur (besloten 11-10-2026).
+ * Gaat nooit naar de klant: de monteur controleert en stuurt zelf door.
+ * Mislukt het, dan krijgt de monteur dat te horen en maakt hij hem zelf.
+ */
+async function offertevoorstel(monteurId: string, lead: any, profiel: any) {
+  try {
+    const nummer = (await monteurInfo(monteurId)).meldnummer;
+    if (!nummer) return;
+
+    // De lead opnieuw ophalen: tijdens het gesprek zijn postcode, verdieping enz. bijgewerkt.
+    const { data: vers } = await db.from('leads').select('*').eq('id', lead.id).maybeSingle();
+    const l = vers ?? lead;
+
+    const sinds = l.aangemaakt_op ? new Date(l.aangemaakt_op) : undefined;
+    const bestanden: TeLezen[] = [];
+    let bytesTotaal = 0;
+    for (const f of bestandenVan(l.klant_telefoon, sinds)) {
+      const bytes = leesBytes(l.klant_telefoon, f);
+      const mime = echtType(bytes, f.mime);
+      const leesbaar = mime === 'application/pdf' || ['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(mime);
+      if (!leesbaar || bestanden.length >= 20 || bytesTotaal + bytes.length > 20 * 1024 * 1024) continue;
+      bestanden.push({ bytes, mime, bestandsnaam: f.naam });
+      bytesTotaal += bytes.length;
+    }
+
+    const s = await leesStuklijst(bestanden, await gesprekVoorMonteur(l.id));
+    if (s.onderkasten + s.hoekkasten + s.hangkasten + s.hoge_kasten === 0) {
+      await naarMonteur(monteurId, `Geen offertevoorstel voor ${l.klant_naam ?? l.klant_telefoon}: geen onderdelenlijst met kasten gevonden. Maak deze offerte zelf.`);
+      return;
+    }
+
+    const op: OfferteProfiel = {
+      ...(profiel.offerte ?? {}),
+      telefoon: profiel.offerte?.telefoon ?? leesbaarNummer(profiel.monteurs?.telefoon) ?? undefined,
+      email: profiel.offerte?.email ?? profiel.monteurs?.email ?? undefined,
+      meerwerk_uurtarief: profiel.offerte?.meerwerk_uurtarief ?? (Number(profiel.uurtarief) || 56),
+    };
+    const ctx: OfferteContext = {
+      klant_naam: l.klant_naam, plaats: l.plaats, pc4: l.pc4, verdieping: l.verdieping, lift: l.lift,
+      werkblad_door: l.werkblad_door, zakelijk: l.zakelijk, installatiewerk: l.installatiewerk,
+      reis: berekenReis(l, profiel)?.profiel ?? null,
+    };
+    const o = berekenOfferte(s, ctx, op);
+    const nr = offertenummer(l.id);
+    const pdf = await offertePdf(o, ctx, op, { offertenummer: nr, datum: new Date() });
+
+    await transport.stuur(nummer, berichtVoorMonteur(o, s, nr, l.klant_naam ?? l.klant_telefoon));
+    await transport.stuurBestand(nummer, {
+      bytes: pdf, mime: 'application/pdf', naam: `Offerte ${nr}.pdf`,
+      bijschrift: 'Concept: controleren en zelf doorsturen',
+    });
+  } catch (e) {
+    console.error('offertevoorstel mislukt:', String(e));
+    await naarMonteur(monteurId, `Offertevoorstel voor ${lead.klant_naam ?? lead.klant_telefoon} mislukt (${String(e).slice(0, 200)}). Maak deze offerte zelf.`);
+  }
 }
 
 function agendaNotitie(lead: any): string {

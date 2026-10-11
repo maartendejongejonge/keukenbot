@@ -128,7 +128,7 @@ export function leesTelling(tekst: string): Telling | null {
   }
 }
 
-function blokVoor(x: TeLezen): Record<string, unknown> {
+export function blokVoor(x: TeLezen): Record<string, unknown> {
   const f = { ...x, mime: echtType(x.bytes, x.mime) };
   if (f.mime === 'application/pdf') {
     if (f.bytes.length > MAX_PDF) throw new Error('PDF te groot');
