@@ -100,6 +100,20 @@ aanleggen, slopen) gaat altijd naar de monteur.
   meer; nieuwe berichten gaan door naar de monteur (14 dagen na overdracht,
   60 dagen na inplannen). De monteur antwoordt zelf vanaf het botnummer.
 
+- **Zelf overnemen (13-10-2026):** typt de monteur zelf iets vanaf het
+  botnummer, dan zwijgt Pico in dat gesprek (status `overgedragen`, ook als
+  het model al aan een antwoord bezig was). Open reserveringen vervallen.
+  Klantberichten gaan dan niet ook nog naar het meldnummer.
+- **Zo min mogelijk vragen (13-10-2026):** alleen vragen wat prijs of
+  haalbaarheid verandert, de rest aannemen. Een "houten" blad is geperst
+  hout met toplaag; de monteur doet al het bladwerk (zagen, uitsparingen,
+  afkitten, spoelbak, kraan, kookplaat). Kookplaat in één vraag: "Is de
+  perilex-aansluiting er al, of kookt u op gas?" Maten schat Pico uit één
+  foto van de hele keuken; alleen bij zelf gekochte bladen die krap kunnen
+  zijn vraagt hij de bladlengte. Werk aan een bestaande keuken vraagt alleen
+  postcode en wat er moet gebeuren, en wordt als werkdag ingepland.
+- **Irritatie:** zegt de klant "100 vragen" of "graag persoonlijk contact",
+  dan stopt Pico met vragen, geeft het nummer en krijgt de monteur een seintje.
 - Antwoorden in de taal van de klant (Nederlands in de u-vorm, of Engels).
   Geen dagdeelgroet: de bot weet niet hoe laat het bij de klant is.
 - Komt de keuken pas over weken of maanden: leverdatum vragen en nu al
@@ -115,22 +129,40 @@ aanleggen, slopen) gaat altijd naar de monteur.
 - Elk aanrechtblad wordt afgekit; dat zit als vaste post in de
   prijsindicatie (`kitwerk`, `kitwerk_hoek_extra`). Bouwpakketkasten (IKEA)
   rekenen sinds 08-10-2026 met 1,5 / 1 / 2,5 uur per onder-, hang- en hoge kast.
-- Een seintje blijft kort (laatste bericht). Elke overdracht en elke inplanning
-  bevat het volledige gesprek,
-  en de foto's en PDF's van de klant komen als bijlage mee (alleen de bestanden
-  die de monteur nog niet had). De runner bewaart ze 60 dagen in
+- Een seintje blijft kort (laatste bericht). Bij een overdracht of inplanning
+  krijgt de monteur eerst een **dossier** (`src/dossier.ts`, 28-10-2026):
+  klant, soort klus, waar, wat er moet gebeuren met de prijzen, gegeven
+  indicatie, een korte samenvatting van het gesprek door het model, waarom het
+  bij hem komt en wat de bot de klant zei. Daarna de foto's en PDF's van de
+  klant met bijschrift (alleen wat hij nog niet had; het dossier telt alles),
+  en als laatste het volledige gesprek. Test: `npm run test:dossier`. De runner bewaart ze 60 dagen in
   `/opt/keukenbot/bestanden` (`src/bestanden.ts`), niet in de database.
 
-## Klusjes buiten de keuken (besloten 03-10-2026)
+## Serviceklussen en klusjes (besloten 28-10-2026)
 
-Lampen, gordijnrails, schilderijen en ander klein werk: zonder instelling
-wijst de bot dit netjes af. Een monteur die `klusjes` in zijn profiel zet,
-neemt ze alleen tegen een hoog tarief aan. Rotterdam Keukenmontage: € 95 per
-uur, minimaal 2 uur, alleen binnen Rotterdam (`werkgebied_pc4`). De klant
-hoort nooit het uurtarief, alleen dat een bezoek € 190 kost en dat er bij
-meer werk naar verhouding tijd bijkomt. De bot vraagt wat, waar en wanneer,
-schat de duur in voor de planning (minimaal 2, maximaal 8 uur) en stelt drie
-momenten voor. In de agenda heet zo'n afspraak "Klusje".
+Vraagt de klant of de monteur **de keuken** kan monteren, dan is het een
+keukenmontage. Gaat het om **één of meer onderdelen** (vaatwasser inbouwen,
+werkblad vervangen, deurtjes afstellen, kraan, afzuigkap …), dan is het een
+**serviceklus** (`type_klus: 'service'`). Dat blijft altijd een serviceklus.
+De oude typen `reparatie`, `ombouw` en `losse_kast` worden automatisch
+`service`.
+
+- De bot vraagt alleen **wat** (codes uit de staffel) en de **woonplaats**.
+  Geen foto, verdieping, lift of leverdatum. Het adres vraagt hij in de
+  bevestiging, nadat de klant een moment koos.
+- `src/service.ts` rekent de vaste arbeidsprijs uit de **staffel** (incl.
+  btw, excl. materiaal), de duur voor de planning, en beslist of de reis
+  gratis is via een vaste tabel woonplaats/wijk → gemeente → **zonelijst**.
+  Het model rekent niets. Prijsbericht: arbeidskosten, reiskosten (gratis in
+  de regio), parkeerkosten voor de klant, extra arbeidskosten bij meer werk.
+- Nieuwe gemeente beoordelen: één keer de rijtijd vanaf Rotterdam Centrum
+  opzoeken (routeplanner, zonder file); ≤ 30 min = gratis. Plaats onbekend:
+  de bot zegt dat de monteur laat weten of er reiskosten zijn, seintje `regio`.
+- Naar de monteur (overdracht): zwaar werkblad (steen, composiet,
+  keramiek), keukenwerk zonder staffelprijs, en klusjes buiten de keuken.
+  De oude klusjesregeling (€ 95/u, minimaal 2 uur) is vervallen.
+- Staffel en zonelijst met bronnen: `claude/kleine-opdrachten.md` in het
+  Pico-project. Test: `npm run build && npm run test:service`.
 
 ## Tweedehands, transport en budget (besloten 03-10-2026)
 
@@ -299,6 +331,17 @@ web/                                de webinterface voor monteurs (Next.js op Ve
 ```
 
 ## Op de server zetten of bijwerken
+
+**Snelste manier (laptop):** dubbelklik `update-pico.bat` in
+`C:\Users\Administrator\OneDrive\Bureaublad\keukenbot`. Dat zet je
+wijzigingen op GitHub (main), Vercel bouwt de webinterface dan zelf, en de
+server haalt de nieuwe code op, bouwt en herstart de bot. Je typt alleen je
+serverwachtwoord. Staat er een nieuwe database-wijziging in
+`supabase/migrations`, dan stopt het script even zodat je die eerst in de
+SQL-editor van Supabase draait. Losse bestanden (patches, testfoto's,
+klant-PDF's) neemt het script niet mee.
+
+Met de hand, op de server:
 
 Inloggen als je eigen gebruiker (niet `keukenbot`, die heeft geen sudo):
 

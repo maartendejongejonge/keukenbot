@@ -21,16 +21,18 @@ import {
   isCompleet,
   ontbrekendeVelden,
   systeemprompt,
-  veldUitleg,
+  veldUitlegVoor,
+  isBestaandeKeuken,
   volgendVeld,
   CONFIDENCE_DREMPEL,
   klusjesAan,
 } from './kwalificatie.js';
 import { Bezetting, PlannerProfiel, Slot, SlotSoort, formuleerVoorstel, vervaltOp, vrijeSlots } from './planner.js';
 import { berekenPrijs, prijsTekst, type PrijsProfiel, type Prijsindicatie, type Werk } from './prijs.js';
+import { berekenService, normaliseer, serviceReiskosten, serviceTekst, zoneVoor } from './service.js';
 
 /** Seintje aan de monteur. Het gesprek blijft bij de bot. */
-export type Signaal = 'prijsbezwaar' | 'prijsvraag' | 'klacht' | 'wil_monteur' | 'twijfel' | 'extra_werk' | 'budget';
+export type Signaal = 'prijsbezwaar' | 'prijsvraag' | 'klacht' | 'wil_monteur' | 'twijfel' | 'extra_werk' | 'budget' | 'regio';
 
 export type Besluit =
   | {
@@ -93,6 +95,7 @@ export interface Afhankelijkheden {
 }
 
 const SIGNALEN: Signaal[] = ['prijsbezwaar', 'prijsvraag', 'klacht', 'wil_monteur', 'twijfel', 'extra_werk', 'budget'];
+// 'regio' zet alleen de code (plaats niet te beoordelen), nooit het model.
 
 export async function verwerkBericht(
   bericht: string,
@@ -139,7 +142,7 @@ export async function verwerkBericht(
       // hetzelfde staat. De monteur krijgt een seintje; de bot blijft praten.
       const vorige = [...ctx.historie].reverse().find((h) => h.afzender === 'bot')?.tekst.trim();
       const slot = [
-        `Dank u, ontvangen. Om u een prijs en datum te geven heb ik nog nodig: ${slotVraag(kwalificatie, prijzen)}.`,
+        `Dank u, ontvangen. Om u een datum te geven heb ik nog nodig: ${slotVraag(kwalificatie, prijzen)}.`,
         `Ik heb het nog niet compleet. Kunt u kort typen: ${slotVraag(kwalificatie, prijzen)}?`,
       ];
       antwoord = slot[0] === vorige ? slot[1] : slot[0];
@@ -159,6 +162,45 @@ export async function verwerkBericht(
         : undefined,
       kwalificatie,
       klanttekst: antwoord,
+    };
+  }
+
+  const naam = profiel.aanspreeknaam?.trim() || 'de monteur';
+
+  // Klusjes buiten de keuken: altijd naar de monteur (28-10-2026).
+  if (kwalificatie.type_klus === 'klusje' && klusjesAan(profiel)) {
+    return {
+      soort: 'overdracht',
+      reden: 'buiten_regels',
+      samenvatting: `Klus buiten de keuken. ${vatSamen({ ...ctx, kwalificatie }, bericht, 'klusje')}`,
+      kwalificatie,
+      klanttekst: `Dat is geen keukenwerk; dat geef ik door aan ${naam}. Hij laat u weten of hij het kan doen.`,
+    };
+  }
+
+  // Serviceklus: zwaar blad en werk zonder staffelprijs gaan naar de monteur.
+  const service = kwalificatie.type_klus === 'service' ? berekenService(kwalificatie.service) : null;
+  if (service && kwalificatie.zwaar_blad) {
+    return {
+      soort: 'overdracht',
+      reden: 'buiten_regels',
+      samenvatting: `Zwaar werkblad (steen/composiet/keramiek): afstemmen met klant en steenhouwer. ${vatSamen({ ...ctx, kwalificatie }, bericht, 'zwaar werkblad')}`,
+      kwalificatie,
+      klanttekst:
+        `Een werkblad van steen, composiet of keramiek vraagt afstemming tussen u, de steenhouwer en ${naam}. ` +
+        'Ik geef het aan hem door; hij neemt contact met u op.',
+    };
+  }
+  const onbekend = service ? [kwalificatie.onbekend_werk?.trim(), ...service.onbekend].filter((x): x is string => Boolean(x)) : [];
+  if (service && onbekend.length) {
+    return {
+      soort: 'overdracht',
+      reden: 'prijsvraag',
+      samenvatting:
+        `Geen staffelprijs voor: ${onbekend.join(', ')}. Zoek de hoge marktprijs op, geef die aan de klant en zet hem in de staffel (service.ts). ` +
+        vatSamen({ ...ctx, kwalificatie }, bericht, 'serviceklus zonder staffelprijs'),
+      kwalificatie,
+      klanttekst: `Voor ${onbekend.join(', ')} heb ik geen vaste prijs. Ik geef het door aan ${naam}; hij laat u de prijs zo snel mogelijk weten.`,
     };
   }
 
@@ -202,6 +244,15 @@ export async function verwerkBericht(
     return `${prijsTekst(prijs)}${extra}\n\n${tekst}`.trim();
   };
 
+  // Serviceklus compleet: vaste prijs uit de staffel, regio uit de plaatsnaam.
+  let serviceBericht: string | undefined;
+  if (service && prijsProfiel && isCompleet(kwalificatie, prijzen)) {
+    const zone = zoneVoor(kwalificatie.plaats);
+    const reiskosten = serviceReiskosten(zone, prijsProfiel.reis);
+    serviceBericht = serviceTekst(service, zone, reiskosten, kwalificatie.plaats, naam);
+    if (zone.status === 'onbekend' || reiskosten === null) signalen.add('regio');
+  }
+
   const sig = [...signalen];
 
   // Nog niet compleet: doorvragen.
@@ -234,7 +285,7 @@ export async function verwerkBericht(
 
   return {
     soort: 'voorstel',
-    tekst: metPrijs(formuleerVoorstel(plan.slots)),
+    tekst: serviceBericht ? `${serviceBericht}\n\n${formuleerVoorstel(plan.slots)}` : metPrijs(formuleerVoorstel(plan.slots)),
     slots: plan.slots,
     vervalt_op: vervaltOp(),
     kwalificatie,
@@ -254,6 +305,19 @@ export async function zoekMomenten(
   deps: Pick<Afhankelijkheden, 'bezetting'>,
   opties: { prijsFlow: boolean; dagenMax?: number; vanaf?: Date },
 ): Promise<{ soort: SlotSoort; slots: Slot[] }> {
+  if (kwalificatie.type_klus === 'service') {
+    // Duur uit de staffel, minimaal een uur, hooguit een werkdag.
+    const duurMin = Math.min(480, Math.max(60, berekenService(kwalificatie.service).duurMin));
+    const nu = new Date();
+    const vanaf = opties.vanaf && +opties.vanaf > +nu ? opties.vanaf : nu;
+    for (const dagen of [28, 56]) {
+      const bezet = await deps.bezetting(vanaf, dagen);
+      const slots = vrijeSlots({ vanaf, dagen, soort: 'klusje', duurMin, profiel, bezet, klantPc4: kwalificatie.pc4 });
+      if (slots.length) return { soort: 'klusje', slots };
+    }
+    return { soort: 'klusje', slots: [] };
+  }
+
   if (kwalificatie.type_klus === 'klusje') {
     // Minimaal de gedekte uren; langer als het model meer werk inschat. Max een werkdag.
     const minimum = klusjesAan(profiel) ? profiel.klusjes.minimum_uren : 2;
@@ -266,6 +330,22 @@ export async function zoekMomenten(
       if (slots.length) return { soort: 'klusje', slots };
     }
     return { soort: 'klusje', slots: [] };
+  }
+
+  // Werk aan een bestaande keuken: gewoon een werkdag (of meer als het model
+  // meer uren inschat). Geen inmeting, de keuken staat er al.
+  if (isBestaandeKeuken(kwalificatie)) {
+    const uren = Number(kwalificatie.klusje_uren) || 8;
+    const dagdelen = Math.min(6, Math.max(2, Math.ceil(uren / 8) * 2));
+    const nu = new Date();
+    const vanaf = opties.vanaf && +opties.vanaf > +nu ? opties.vanaf : nu;
+    const planProfiel = { ...profiel, montage_duur_dagdelen: dagdelen };
+    for (const dagen of [28, 56]) {
+      const bezet = await deps.bezetting(vanaf, dagen);
+      const slots = vrijeSlots({ vanaf, dagen, soort: 'montage', profiel: planProfiel, bezet, klantPc4: kwalificatie.pc4 });
+      if (slots.length) return { soort: 'montage', slots };
+    }
+    return { soort: 'montage', slots: [] };
   }
 
   const soort: 'inmeting' | 'montage' = opties.prijsFlow
@@ -299,7 +379,7 @@ function hoofdletter(s: string): string {
 function slotVraag(k: Kwalificatie, prijzen: boolean): string {
   const v = volgendVeld({ type_klus: 'montage', ...k }, prijzen);
   if (v === 'werk') return 'het aantal onderkasten, hangkasten en hoge kasten, en de lengte van de keuken';
-  return v ? veldUitleg(v) : 'welk moment u het beste past';
+  return v ? veldUitlegVoor(k, v) : 'welk moment u het beste past';
 }
 
 /**
@@ -323,7 +403,8 @@ function terugvalLadder(k: Kwalificatie, prijzen: boolean): string[] {
       'Lukt dat niet, kunt u dan typen hoeveel onderkasten, hangkasten en hoge kasten er zijn, en hoe lang de keuken is?',
     ];
   }
-  return [`Kunt u mij nog laten weten: ${veldUitleg(v)}?`, `Mag ik nog weten: ${veldUitleg(v)}? Dan kan ik verder.`];
+  const wat = veldUitlegVoor(k, v);
+  return [`Kunt u mij nog laten weten ${wat}?`, `Mag ik nog weten ${wat}? Dan kan ik verder.`];
 }
 
 function schoon<T extends object>(v: Partial<T> | undefined): Partial<T> {
@@ -342,6 +423,14 @@ export function samenvoegen(oud: Kwalificatie, nieuw: Partial<Kwalificatie> | un
     n.werk || oud.werk ? { ...(oud.werk ?? {}), ...schoon<Werk>(n.werk) } : undefined;
   const uit: Kwalificatie = { ...oud, ...n };
   if (werk) uit.werk = werk;
+  // Oude typen voor werk aan onderdelen heten sinds 28-10-2026 'service'.
+  if (uit.type_klus === 'reparatie' || uit.type_klus === 'ombouw' || uit.type_klus === 'losse_kast') uit.type_klus = 'service';
+  // Onderdelen per code samenvoegen; een nieuw aantal vervangt het oude.
+  if (oud.service || n.service) {
+    const per = new Map(normaliseer(oud.service).map((r) => [r.code, r.aantal]));
+    for (const r of normaliseer(Array.isArray(n.service) ? n.service : [])) per.set(r.code, r.aantal);
+    uit.service = [...per].map(([code, aantal]) => ({ code, aantal }));
+  }
   if (typeof uit.pc4 === 'string') uit.pc4 = Number(String(uit.pc4).slice(0, 4)) || undefined;
   // "onbekend" = de klant weet het niet of de keuken staat er al: plan vanaf vandaag.
   if (uit.leverdatum === 'onbekend') uit.leverdatum = new Date().toISOString().slice(0, 10);

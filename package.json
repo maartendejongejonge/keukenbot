@@ -11,7 +11,9 @@
     "test:prijs": "node dist/prijs.test.js",
     "test:gesprekken": "node dist/gesprekken.test.js",
     "test:uitlezen": "node dist/uitlezen.test.js",
-    "test:offerte": "node dist/offerte.test.js"
+    "test:offerte": "node dist/offerte.test.js",
+    "test:service": "node dist/service.test.js && node dist/serviceflow.test.js",
+    "test:dossier": "node dist/dossier.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

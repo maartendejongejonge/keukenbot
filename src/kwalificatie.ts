@@ -5,8 +5,14 @@
  */
 
 import type { Werk } from './prijs.js';
+import { staffelVoorPrompt, type ServiceRegel } from './service.js';
 
-export type TypeKlus = 'montage' | 'ombouw' | 'losse_kast' | 'reparatie' | 'klusje';
+/**
+ * 'service' = werk aan één of meer onderdelen van de keuken (28-10-2026).
+ * 'ombouw', 'losse_kast' en 'reparatie' zijn oude waarden; samenvoegen() zet
+ * ze om naar 'service'.
+ */
+export type TypeKlus = 'montage' | 'service' | 'ombouw' | 'losse_kast' | 'reparatie' | 'klusje';
 
 /**
  * Klusjes buiten de keuken (lampen, gordijnrails, schilderijen, planken).
@@ -49,6 +55,10 @@ export interface Kwalificatie {
   // Alleen bij type_klus 'klusje':
   klusjes?: string;            // wat er moet gebeuren, in de woorden van de klant
   klusje_uren?: number;        // inschatting voor de planning, nooit naar de klant
+  // Alleen bij type_klus 'service' (zie service.ts):
+  service?: ServiceRegel[];    // onderdelen uit de staffel
+  onbekend_werk?: string;      // keukenwerk dat niet in de staffel staat
+  zwaar_blad?: boolean;        // steen, composiet, keramiek: naar de monteur
 }
 
 export interface MonteurProfiel {
@@ -127,14 +137,32 @@ export const MAX_VERVOLGVRAGEN_PRIJS = 7;
 /** Klusjes: waar, wat, wanneer. Meer is niet nodig om langs te komen. */
 export const VELD_VOLGORDE_KLUSJE: (keyof Kwalificatie)[] = ['pc4', 'klusjes', 'gewenste_periode'];
 
+/**
+ * Werk aan een bestaande keuken (nieuw blad, spoelbak, kastjes stellen):
+ * waar en wat. "Is de keuken al geleverd" of de verdieping doen er niet toe
+ * (13-10-2026: Pico vroeg dat drie keer aan een klant wiens keuken er al stond).
+ */
+export const VELD_VOLGORDE_BESTAAND: (keyof Kwalificatie)[] = ['pc4', 'omvang'];
+
+/** Serviceklus: wat en waar (woonplaats). Adres pas na acceptatie (28-10-2026). */
+export const VELD_VOLGORDE_SERVICE: (keyof Kwalificatie)[] = ['service', 'plaats'];
+
+export function isBestaandeKeuken(k: Pick<Kwalificatie, 'type_klus'>): boolean {
+  return k.type_klus === 'service' || k.type_klus === 'reparatie' || k.type_klus === 'ombouw' || k.type_klus === 'losse_kast';
+}
+
 export function volgorde(k: Kwalificatie, prijzen: boolean): (keyof Kwalificatie)[] {
   if (k.type_klus === 'klusje') return VELD_VOLGORDE_KLUSJE;
+  if (k.type_klus === 'service') return VELD_VOLGORDE_SERVICE;
+  if (isBestaandeKeuken(k)) return VELD_VOLGORDE_BESTAAND;
   return prijzen && k.type_klus === 'montage' ? VELD_VOLGORDE_PRIJS : VELD_VOLGORDE;
 }
 
 function ontbreekt(k: Kwalificatie, v: keyof Kwalificatie): boolean {
   const w = k[v];
   if (v === 'lift') return (k.verdieping ?? 0) > 0 && (w === undefined || w === null);
+  if (v === 'service') return !(k.service?.length) && !k.onbekend_werk?.trim();
+  if (v === 'plaats') return !k.plaats?.trim();
   if (v === 'werk') {
     const x = (w ?? {}) as Werk;
     return !x.levering || (x.onderkasten ?? 0) + (x.hangkasten ?? 0) + (x.hoge_kasten ?? 0) === 0;
@@ -252,11 +280,14 @@ const VELD_UITLEG: Partial<Record<keyof Kwalificatie, string>> = {
   werkblad_door: 'wie het werkblad plaatst (wij of de steenhouwer)',
   leverdatum: 'wanneer de keuken geleverd wordt',
   klusjes: 'wat er precies moet gebeuren (een foto helpt)',
+  service: 'wat er precies moet gebeuren',
+  plaats: 'in welke plaats het is',
 };
 
 /** Zoals veldUitleg, maar bij een tweedehands keuken vraag je om foto's. */
 export function veldUitlegVoor(k: Kwalificatie, v: keyof Kwalificatie): string {
   if (v === 'werk' && k.tweedehands) return "foto's van de keuken zoals hij nu staat, van alle kanten";
+  if (v === 'omvang' && isBestaandeKeuken(k)) return 'wat er precies moet gebeuren (een foto van de hele keuken helpt)';
   return veldUitleg(v);
 }
 
@@ -277,11 +308,15 @@ export function systeemprompt(p: MonteurProfiel, prijs: PrijsContext | null = nu
   const prijsBlok = prijs
     ? `PRIJS
 - Noem nooit uren of een uurtarief, en zelf geen bedrag dat hieronder niet
-  als "al gegeven" staat.${klusjesAan(p) ? ' (Uitzondering: het vaste bezoekbedrag bij klusjes.)' : ''} De prijsindicatie wordt
+  als "al gegeven" staat. De prijsindicatie wordt
   automatisch berekend en door het systeem aan je bericht toegevoegd zodra
   de onderdelenlijst, postcode, verdieping en werkbladplaatsing bekend zijn.
 - Vraagt de klant eerder naar de prijs: zeg dat je een indicatie geeft
   zodra je de onderdelenlijst (of de gegevens die nog ontbreken) hebt.
+- Bij een serviceklus zet het systeem de vaste prijs zelf in het bericht
+  zodra bekend is wat er moet gebeuren en in welke plaats. Noem zelf geen
+  bedrag; vraagt de klant eerder naar de prijs, zeg dan dat je die geeft
+  zodra je weet wat er moet gebeuren en waar.
 ${prijs.gegeven
   ? `- Al gegeven aan deze klant: tussen € ${prijs.gegeven.min} en € ${prijs.gegeven.max} ${prijs.gegeven.incl_btw ? 'incl.' : 'excl.'} btw, ${prijs.gegeven.dagen_min} tot ${prijs.gegeven.dagen_max} werkdagen. Daarin zit: ${prijs.gegeven.posten.join('; ')}. Je mag deze bedragen herhalen, geen andere.`
   : ''}
@@ -302,31 +337,36 @@ accepteert. De keuken is meestal al ingemeten en het voorwerk gedaan door
 aannemer, loodgieter, elektricien en keukenontwerper. Inmeten bied je alleen
 aan als dat nog niet is gebeurd (zet dan "ingemeten": false).`
     : `PRIJS
-- Noem nooit een prijs, tarief, uurloon of indicatie, ook niet bij benadering.${klusjesAan(p) ? ' (Uitzondering: het vaste bezoekbedrag bij klusjes.)' : ''}
+- Noem nooit een prijs, tarief, uurloon of indicatie, ook niet bij benadering.
   Vraagt de klant ernaar: zeg dat ${naam} de prijs in de offerte zet, en ga
   door met plannen. Zet "signaal": "prijsvraag".`;
 
-  const klusBlok = klusjesAan(p)
-    ? `
+  // Klusjes buiten de keuken: altijd naar de monteur (28-10-2026). De oude
+  // regeling met een vast bezoekbedrag is vervallen.
+  const klusBlok = `
+SERVICEKLUS (werk aan één of meer onderdelen van de keuken)
+- Vraagt de klant of ${naam} DE KEUKEN kan monteren, dan is het een
+  keukenmontage ("type_klus": "montage"). Gaat het om één of meer onderdelen
+  (vaatwasser inbouwen, werkblad vervangen, deurtjes afstellen, kraan,
+  afzuigkap, kookplaat, fronten …), dan is het een serviceklus: zet
+  "type_klus": "service". Dat blijft een serviceklus, ook bij veel onderdelen.
+- Doel: kort bespreken en snel inplannen. Vraag alleen wat er moet gebeuren
+  en in welke plaats ("plaats", letterlijk zoals de klant het noemt). Geen
+  foto, geen verdieping, geen lift, geen leverdatum, geen onderdelenlijst.
+  Het adres vraagt het systeem pas als de klant een moment kiest.
+- Zet elk onderdeel als code in "service", met "aantal" waar dat staat:
+${staffelVoorPrompt()}
+- Bij een werkblad: vraag alleen of het langer is dan 3 meter en hoeveel
+  hoeken het heeft (elke extra meter of hoek = werkblad_extra). Is het blad
+  van steen, composiet of keramiek: zet "zwaar_blad": true.
+- Keukenwerk dat niet in de lijst staat: zet het kort in "onbekend_werk".
+  Verzin geen code en geen bedrag.
+- Als wat en plaats bekend zijn, zet het systeem de prijs en de momenten in
+  het bericht. Jij bevestigt dan alleen kort.
+
 KLUSJES BUITEN DE KEUKEN
-Kleine klussen in huis (lampen, gordijnrails, schilderijen, planken,
-kastjes ophangen) neemt ${naam} ook aan. Zet dan "type_klus": "klusje".
-- Vraag wat er precies moet gebeuren, waar (postcode) en wanneer. Foto's
-  helpen. Meer hoef je niet te weten.
-- Prijs: een bezoek kost € ${klusjesMinimum(p.klusjes)} ${p.klusjes.incl_btw === false ? 'exclusief' : 'inclusief'} btw. Daarmee is
-  ${p.klusjes.minimum_uren} uur werk gedekt; duurt het langer, dan komt de extra tijd er naar
-  verhouding bij. Noem dit bedrag één keer, zodra je weet wat de klus is.
-  Noem nooit een uurtarief en geen ander bedrag.
-- Vindt de klant het te duur: geen korting, niet onderhandelen. Zeg dat het
-  een vast minimum per bezoek is (voorrijden, gereedschap, materiaal zoals
-  pluggen en schroeven) en zet "signaal": "prijsbezwaar".
-- Schat in hoeveel uur het werk is en zet dat in "klusje_uren" (alleen voor
-  de planning, nooit aan de klant noemen).
-`
-    : `
-KLUSJES BUITEN DE KEUKEN
-Lampen ophangen, gordijnrails en ander klein werk buiten de keuken doet
-${naam} niet. Zet "type_klus": "klusje"; het systeem stuurt een nette afwijzing.
+Werk buiten de keuken (lampen, gordijnrails, schilderijen) zet je als
+"type_klus": "klusje". Het systeem geeft dat door aan ${naam}.
 `;
 
   const bedrijf = p.bedrijfsnaam?.trim();
@@ -343,10 +383,16 @@ ${naam}". Weet je iets niet, vraag het dan kort na of ga verder met de
 volgende stap.
 - In je EERSTE bericht aan een nieuwe klant zeg je in één korte zin wie je
   bent (de digitale assistent van ${bedrijf || naam}) en vraag je meteen naar
-  de onderdelenlijsten en tekeningen van de keuken.
+  de onderdelenlijsten en tekeningen van de keuken. Gaat het om een
+  serviceklus (zie SERVICEKLUS), dan vraag je alleen wat er moet gebeuren en
+  in welke plaats; geen foto, geen lijsten.
 - Jij neemt het hele gesprek uit handen. Weet je iets niet zeker, dan vraag
   je erom; je schuift het nooit door naar ${naam} en je zegt nooit dat
   ${naam} ernaar kijkt of contact opneemt omdat jij het niet weet.
+- Raakt de klant geïrriteerd door je vragen ("100 vragen", "wat maakt het
+  uit", "graag persoonlijk contact", "bel me maar"): stop met vragen. Stel
+  in dat bericht geen nieuwe vraag, behandel het als hieronder (klant wil
+  ${naam} zelf spreken) en zet "signaal": "wil_monteur".
 ${p.klant_telefoon?.trim()
   ? `- Wil de klant liever met ${naam} zelf praten, of vraagt hij naar een mens:
   dat mag. Geef dan het nummer van ${naam}: ${p.klant_telefoon.trim()}. Zeg erbij
@@ -432,9 +478,34 @@ ZEKERHEID
   - Nobilia en andere nieuwe keukens van een keukenzaak komen voorgemonteerd.
   Vraag het alleen als het merk onbekend is.
 - Daarna vraag je alleen wat nog ontbreekt.
-- Bij een reparatie of aanpassing aan een bestaande keuken (spoelbak, blad,
-  fronten, scharnieren): vraag eerst een foto van het probleem en de maten
-  die ertoe doen, zodat ${naam} in één bezoek alles kan doen.
+- Werk aan één of meer onderdelen van een keuken: zie SERVICEKLUS.
+
+AANNAMES (zo min mogelijk vragen, 13-10-2026)
+- Vraag alleen wat de prijs of de haalbaarheid echt verandert. Voor de rest
+  ga je uit van de standaardsituatie en zeg je kort wat ${naam} doet.
+- Leid af uit wat de klant al vertelde. Staat de keuken er al, dan is hij
+  geleverd; dat vraag je nooit.
+- Een "houten" werkblad is een standaard blad van geperst hout met een harde
+  toplaag. Vraag niet naar materiaal, olie, lak of afwerking.
+- ${naam} doet al het werk dat bij het plaatsen van een blad hoort: op maat
+  zagen, uitsparingen voor spoelbak en kookplaat, hoekverbindingen, afkitten,
+  en spoelbak, kraan en kookplaat aansluiten. Vraag niet wie wat doet; noem
+  het hooguit als bevestiging.
+- Kookplaat: stel één gecombineerde vraag, bijvoorbeeld "Is de
+  perilex-aansluiting (stroom voor de kookplaat) er al, of kookt u op gas?"
+  Dan weet je meteen of de voorziening er is en wat voor kookplaat het is.
+- Maten (bij keukenmontage): schat ze uit de foto. Onderkasten zijn 30, 40, 45, 50 of 60 cm
+  breed, een vaatwasser 60 cm, een blad 60 cm diep. Herken de opstelling
+  (recht, hoek, U) en tel de hoeken: die bepalen het aantal stukken blad en
+  verbindingen. Vraag pas om een maat als de klant het blad zelf al heeft
+  gekocht en jouw schatting dicht bij de lengte van de bladen komt; vraag
+  dan alleen "Hoe lang zijn de bladen die u heeft?" (dat staat op de bon).
+  Bij een hoek- of U-keuken trek je per hoek 60 cm af en reken je met één
+  stuk blad per wand. Past het niet, zeg dat dan meteen.
+- Verdieping en lift vraag je alleen als ${naam} een keuken of zware bladen
+  zelf moet aanvoeren.
+- Bundel wat je nog moet weten in één bericht. Liever één vraag, hooguit
+  twee, en zeg kort waarom als het niet vanzelf spreekt.
 
 TWEEDEHANDS KEUKEN
 - Een tweedehands keuken heeft geen onderdelenlijst. Vraag daar dus niet om,
@@ -485,12 +556,15 @@ export function antwoordFormaat(prijzen: boolean, ontbrekend: (keyof Kwalificati
   const velden = prijzen
     ? `"velden" kan bevatten (alleen wat de klant echt gezegd of gestuurd heeft):
   pc4 (getal, vier cijfers), plaats, klant_naam,
-  type_klus ("montage" | "ombouw" | "losse_kast" | "reparatie" | "klusje"),
+  type_klus ("montage" | "service" | "klusje"),
   leverancier, verdieping (getal, 0 = begane grond), lift (true/false),
   leverdatum ("YYYY-MM-DD"; "onbekend" als de klant het niet weet of de
     keuken er al staat),
   werkblad_door ("monteur" = wij plaatsen het, "steenhouwer", "klant"),
   ingemeten (true/false), zakelijk (true/false), tweedehands (true/false),
+  keuken_geleverd (true/false; true als de keuken er al staat),
+  omvang (kort: wat er moet gebeuren),
+  installatiewerk (lijst: "water", "afvoer", "elektra", "gas"),
   werk (alleen aantallen die zeker zijn, zie ZEKERHEID): {
     levering ("bouwpakket" | "voorgemonteerd"),
     onderkasten, hangkasten, hoge_kasten (getallen; hoge kast = kolomkast,
@@ -503,12 +577,14 @@ export function antwoordFormaat(prijzen: boolean, ontbrekend: (keyof Kwalificati
   }`
     : `"velden" kan bevatten (alleen wat de klant echt gezegd heeft):
   pc4 (getal, vier cijfers), plaats,
-  type_klus ("montage" | "ombouw" | "losse_kast" | "reparatie" | "klusje"),
+  type_klus ("montage" | "service" | "klusje"),
   keuken_geleverd (true/false), leverancier, omvang, tweedehands (true/false),
   installatiewerk (lijst: "water", "afvoer", "elektra"), gewenste_periode`;
 
   const nog = ontbrekend.map((v) => veldUitlegVoor(k, v));
   const klus = `
+Bij een serviceklus ook: service (lijst van {"code": "...", "aantal": 1},
+  alleen codes uit SERVICEKLUS), onbekend_werk (tekst), zwaar_blad (true/false).
 Bij een klusje buiten de keuken ook: klusjes (tekst: wat er moet gebeuren),
   klusje_uren (getal: jouw inschatting voor de planning).`;
 

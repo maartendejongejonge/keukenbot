@@ -12,7 +12,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { baileysTransport, type InkomendBericht } from './transport.js';
+import { baileysTransport, type HandmatigBericht, type InkomendBericht } from './transport.js';
 import { verwerkBericht, zoekMomenten, type Besluit, type LeadContext, type Signaal } from './orchestrator.js';
 import { formuleerVoorstel, vervaltOp } from './planner.js';
 import { CONFIDENCE_DREMPEL, systeemprompt, type Kwalificatie, type PrijsContext } from './kwalificatie.js';
@@ -20,7 +20,8 @@ import { keuzePrompt, leesKeuze, omschrijfSlot, snelleKeuze, type KeuzeUitkomst 
 import { bundelNaarTekst, echtType, type BundelMedia, type TeLezen } from './media.js';
 import { berekenOfferte, berichtVoorMonteur, leesStuklijst, offerteActief, offertePdf, offertenummer, type OfferteContext, type OfferteProfiel } from './offerte.js';
 import { bestandenVan, bewaarBestand, leesBytes, markeerVerstuurd, ruimBestandenOp, wisBestanden } from './bestanden.js';
-import { duidBericht } from './model.js';
+import { duidBericht, vatSamenVoorMonteur } from './model.js';
+import { aanleidingUit, bijschrift, maakDossier, watRegels } from './dossier.js';
 import { prijsOpbouw, prijzenActief, type PrijsProfiel, type Prijsindicatie, type Uurnormen } from './prijs.js';
 import { bezetting as agendaBezetting, vastleggen, type GoogleKoppeling } from './agenda.js';
 import { overnachtingsAdvies, reis, samenvatting, type ReisProfiel } from './reiskosten.js';
@@ -129,7 +130,7 @@ async function start() {
   console.log(`Keukenbot start — ${MEELEZEN ? 'MEELEESMODUS (klant krijgt niets)' : 'LIVE'}`);
   if (TESTNUMMERS.size) console.log(`${TESTNUMMERS.size} testnummer(s) actief`);
 
-  await transport.start(ontvang);
+  await transport.start(ontvang, handmatig);
 
   // Niet afwachten: het updatebericht wacht zelf op de verbinding.
   meldUpdate().catch((e) => console.error('updatebericht mislukt:', String(e)));
@@ -149,6 +150,19 @@ const wachtrij = new Map<string, { b: InkomendBericht; teksten: string[]; media:
  * en dan voor de hele bundel in één keer (08-10-2026). Zo telt het model een
  * lijst van drie foto's als één lijst.
  */
+/** Per klant een rij: taken voor dezelfde sleutel lopen strikt na elkaar. */
+const rijen = new Map<string, Promise<void>>();
+function naNa(sleutel: string, taak: () => Promise<void>): void {
+  const vorige = rijen.get(sleutel) ?? Promise.resolve();
+  const volgende = vorige
+    .then(taak)
+    .catch((e) => console.error('verwerken mislukt:', String(e)))
+    .finally(() => {
+      if (rijen.get(sleutel) === volgende) rijen.delete(sleutel);
+    });
+  rijen.set(sleutel, volgende);
+}
+
 async function ontvang(b: InkomendBericht) {
   // Staat het nummer van de monteur zelf in TESTNUMMERS, dan speelt hij klant
   // (08-10-2026: Maarten heeft alleen zijn eigen nummer en het botnummer).
@@ -174,16 +188,17 @@ async function ontvang(b: InkomendBericht) {
   if (b.media) item.media.push(mediaBinnen(b));
   else if (b.tekst.trim()) item.teksten.push(b.tekst);
 
-  item.timer = setTimeout(async () => {
+  item.timer = setTimeout(() => {
     wachtrij.delete(sleutel);
-    try {
+    // Eén bundel per klant tegelijk: een tweede bundel wacht tot de vorige
+    // helemaal verwerkt is (anders zien ze elkaars antwoord niet en sturen
+    // ze allebei dezelfde vraag; 18-10-2026).
+    naNa(sleutel, async () => {
       const uitgelezen = await bundelNaarTekst(item.media);
       const teksten = [...item.teksten, uitgelezen].filter((t) => t.trim());
       if (!teksten.length) return;
       await behandel({ ...item.b, tekst: teksten.join('\n\n'), media: undefined });
-    } catch (e) {
-      console.error('verwerken mislukt:', String(e));
-    }
+    });
   }, BUNDEL_MS);
   wachtrij.set(sleutel, item);
 }
@@ -200,6 +215,64 @@ function mediaBinnen(b: InkomendBericht): BundelMedia {
     (e) => console.error('media downloaden mislukt:', String(e)),
   );
   return { media: { ...media, download: () => bytes }, bijschrift: b.tekst };
+}
+
+// ------------------------------------------------- monteur neemt het over
+
+/**
+ * De monteur typt zelf iets vanaf het botnummer (13-10-2026, Maarten: Pico
+ * praatte door nadat ik het gesprek had overgenomen, en sprak mijn afspraak
+ * tegen). Vanaf dat moment zwijgt de bot in dit gesprek. Klantberichten gaan
+ * niet ook nog naar het meldnummer: de monteur leest ze al op het botnummer.
+ * Open reserveringen vervallen, die regelt de monteur nu zelf.
+ */
+async function handmatig(h: HandmatigBericht) {
+  if (h.naarNummer === MONTEUR_WHATSAPP) return;
+
+  const kanaal = await db
+    .from('kanalen')
+    .select('id, monteur_id')
+    .eq('soort', 'whatsapp')
+    .eq('externe_id', h.kanaalSleutel)
+    .eq('actief', true)
+    .maybeSingle();
+  if (!kanaal.data) return;
+
+  const monteurId = kanaal.data.monteur_id;
+  if (h.naarNummer === (await monteurInfo(monteurId)).meldnummer) return;
+
+  // Wacht er nog een bundel klantberichten op de bot, dan vervalt die.
+  const sleutel = `${h.kanaalSleutel}|${h.naarNummer}`;
+  const wachtend = wachtrij.get(sleutel);
+  if (wachtend) {
+    clearTimeout(wachtend.timer);
+    wachtrij.delete(sleutel);
+  }
+
+  const lead = await vindOfMaakLead(monteurId, kanaal.data.id, h.naarNummer);
+  const nu = new Date().toISOString();
+  await db.from('berichten').insert({ lead_id: lead.id, richting: 'uit', afzender: 'monteur', tekst: h.tekst });
+
+  if (lead.status === 'ingepland') {
+    await db.from('leads').update({ laatste_bericht_op: nu }).eq('id', lead.id);
+    return;
+  }
+
+  await db.from('leads').update({ status: 'overgedragen', laatste_bericht_op: nu }).eq('id', lead.id);
+  await db.from('afspraken').update({ status: 'geannuleerd' }).eq('lead_id', lead.id).eq('status', 'voorlopig');
+  if (lead.status !== 'overgedragen') {
+    console.log(`gesprek met ${h.naarNummer} handmatig overgenomen; de bot zwijgt`);
+  }
+}
+
+/** Heeft de monteur in dit gesprek zelf iets gestuurd vanaf het botnummer? */
+async function zelfOvergenomen(leadId: string): Promise<boolean> {
+  const { count } = await db
+    .from('berichten')
+    .select('id', { count: 'exact', head: true })
+    .eq('lead_id', leadId)
+    .eq('afzender', 'monteur');
+  return (count ?? 0) > 0;
 }
 
 // ------------------------------------------------------------- per bericht
@@ -250,7 +323,8 @@ async function behandel(b: InkomendBericht) {
 
   // Een tester na inplannen of overdracht: niet zwijgen, maar opnieuw
   // beginnen. Zo kan hij meteen het volgende scenario spelen.
-  if ((lead.status === 'overgedragen' || lead.status === 'ingepland') && isTester(b.vanNummer)) {
+  const overgenomen = lead.status === 'overgedragen' && (await zelfOvergenomen(lead.id));
+  if ((lead.status === 'overgedragen' || lead.status === 'ingepland') && isTester(b.vanNummer) && !overgenomen) {
     await wisGesprek(b.vanNummer);
     if (!MEELEZEN) await transport.stuur(b.vanNummer, NIEUW_GESPREK_TEKST);
     lead = await vindOfMaakLead(monteurId, kanaal.data.id, b.vanNummer);
@@ -259,6 +333,8 @@ async function behandel(b: InkomendBericht) {
   // Overgedragen of ingepland: de bot zwijgt, de monteur krijgt het bericht.
   if (lead.status === 'overgedragen' || lead.status === 'ingepland') {
     await bewaarKlantbericht(lead.id, b.tekst);
+    // Zelf overgenomen: de monteur leest het al op het botnummer.
+    if (overgenomen) return;
     await naarMonteur(
       monteurId,
       `${lead.status === 'ingepland' ? 'Ingeplande klant' : 'Overgedragen gesprek'} ` +
@@ -302,10 +378,13 @@ async function behandel(b: InkomendBericht) {
     bezetting: (vanaf, dagen) => bezettingVoor(monteurId, vanaf, dagen),
   }, prijsProfiel);
 
+  // Nam de monteur het gesprek over terwijl het model nadacht: niets sturen.
+  if (await zelfOvergenomen(lead.id)) return;
+
   // Wat er in dit bericht bekend werd, altijd bewaren — ook bij een overdracht.
   if ('kwalificatie' in besluit && besluit.kwalificatie) {
     await db.from('leads').update({
-      ...naarLead(besluit.kwalificatie),
+      ...naarLead(besluit.kwalificatie, lead.werk?._posten),
       laatste_bericht_op: new Date().toISOString(),
     }).eq('id', lead.id);
   }
@@ -407,15 +486,64 @@ async function draagOver(
   if (!MEELEZEN) await transport.stuur(nummer, tekst);
   await db.from('berichten').insert({ lead_id: leadId, richting: 'uit', afzender: 'bot', tekst });
 
+  await dossierNaarMonteur(monteurId, leadId, {
+    kop: `Overdracht — ${REDEN_TEKST[reden] ?? reden}`,
+    aanleiding: aanleidingUit(kortBestandsinhoud(samenvatting, '')) || REDEN_TEKST[reden] || reden,
+    concept,
+    extra: [`De bot heeft de klant gezegd: "${tekst}"`, 'De bot antwoordt deze klant niet meer; reageer zelf vanaf het botnummer.'],
+  });
+}
+
+const REDEN_TEKST: Record<string, string> = {
+  prijsvraag: 'prijs nodig',
+  levertijd: 'vraag over levertijd',
+  klacht: 'klacht',
+  emotie: 'klant is boos of heeft haast',
+  lage_confidence: 'de bot weet het niet',
+  buiten_regels: 'valt buiten de regels van de bot',
+};
+
+/**
+ * Het dossier naar de monteur (28-10-2026): eerst de samenvatting van de
+ * opdracht, dan alle foto's en bestanden van de klant, dan het volledige
+ * gesprek als naslag. Gebruikt bij overdracht en bij inplannen.
+ */
+async function dossierNaarMonteur(
+  monteurId: string,
+  leadId: string,
+  opties: { kop: string; aanleiding?: string; concept?: string; extra?: string[] },
+) {
+  // Vers ophalen: tijdens deze beurt zijn de velden net bijgewerkt.
+  const { data: lead } = await db.from('leads').select('*').eq('id', leadId).maybeSingle();
+  if (!lead) return;
+
+  const gesprek = await gesprekVoorMonteur(leadId);
+  const { data: laatste } = await db
+    .from('berichten')
+    .select('tekst')
+    .eq('lead_id', leadId)
+    .eq('afzender', 'klant')
+    .order('verzonden_op', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const sinds = lead.aangemaakt_op ? new Date(lead.aangemaakt_op) : undefined;
+  const alle = bestandenVan(lead.klant_telefoon, sinds);
+  const nieuw = alle.filter((f) => !f.verstuurd);
+
   await naarMonteur(
     monteurId,
-    `Overdracht (${reden})\nvan ${nummer}\n${kortBestandsinhoud(samenvatting, '')}` +
-      (concept ? `\n\nVoorstel antwoord:\n${concept}` : '') +
-      `\n\n${await gesprekVoorMonteur(leadId)}` +
-      `\n\nDe bot antwoordt deze klant niet meer; reageer zelf vanaf het botnummer.`,
+    maakDossier({
+      ...opties,
+      lead,
+      laatsteKlantbericht: laatste?.tekst ? kortBestandsinhoud(String(laatste.tekst), ' [bijlage]') : undefined,
+      samenvatting: await vatSamenVoorMonteur(gesprek),
+      bestanden: alle,
+      nieuweBestanden: nieuw.length,
+    }),
   );
-  const { data: lead } = await db.from('leads').select('id, klant_telefoon, aangemaakt_op').eq('id', leadId).maybeSingle();
-  if (lead) await bestandenNaarMonteur(monteurId, lead);
+  await bestandenNaarMonteur(monteurId, lead);
+  await naarMonteur(monteurId, gesprek);
 }
 
 // ------------------------------------------------------- keuze uit voorstel
@@ -527,6 +655,7 @@ const SEINTJE_UITLEG: Record<Signaal, string> = {
   twijfel: 'De bot twijfelde over zijn antwoord. Kijk even mee.',
   extra_werk: 'Werk zonder vaste prijs; de bot heeft gezegd dat jij het apart in de offerte zet.',
   budget: 'Klant kan het bedrag niet betalen. Het gesprek is aan jou overgedragen.',
+  regio: 'Serviceklus: de plaats staat niet in de zonelijst. De bot zei dat jij laat weten of er reiskosten zijn. Beoordeel de gemeente één keer (≤ 30 min rijden = gratis) en laat hem in service.ts zetten.',
 };
 
 /**
@@ -591,7 +720,7 @@ async function bestandenNaarMonteur(monteurId: string, lead: any) {
           bytes: leesBytes(lead.klant_telefoon, f),
           mime: f.mime,
           naam: f.naam,
-          bijschrift: `Van klant ${lead.klant_telefoon} (${i + 1}/${nieuw.length})`,
+          bijschrift: bijschrift(f, i, nieuw.length, lead.klant_naam || lead.klant_telefoon),
         });
         gelukt.push(f.id);
       } catch (e) {
@@ -599,6 +728,9 @@ async function bestandenNaarMonteur(monteurId: string, lead: any) {
       }
     }
     markeerVerstuurd(lead.klant_telefoon, gelukt);
+    if (gelukt.length < nieuw.length) {
+      await naarMonteur(monteurId, `Let op: ${nieuw.length - gelukt.length} van ${nieuw.length} bestanden van ${lead.klant_telefoon} konden niet worden doorgestuurd. Ze staan op de server in de map van deze klant.`);
+    }
   } catch (e) {
     console.error('bestanden naar monteur mislukt:', String(e));
   }
@@ -663,18 +795,17 @@ async function bevestig(b: InkomendBericht, lead: any, profiel: any, gekozen: an
       ? `Genoteerd: de montage begint ${omschrijfSlot({ soort: 'inmeting', start }).split(' om ')[0]}${duur}. ` +
         `${naam} neemt vooraf contact met u op over de laatste details${offerteActief(profiel) ? ' en stuurt u de offerte' : ''}. Wilt u het adres nog sturen?`
       : gekozen.soort === 'klusje'
-      ? `Genoteerd: ${naam} komt ${omschrijfSlot({ soort: 'inmeting', start })} langs. Wilt u het adres nog sturen?`
+      ? `Genoteerd: ${naam} komt ${omschrijfSlot({ soort: 'inmeting', start })} langs. Wilt u uw adres met postcode nog sturen?`
       : `Genoteerd: ${naam} komt ${omschrijfSlot({ soort: 'inmeting', start })} inmeten. Wilt u het adres nog sturen?`;
 
   await naarKlant(b.vanNummer, tekst, lead.id, monteurId, 'bevestiging');
-  await naarMonteur(
-      monteurId,
-    `Ingepland en aan jou overgedragen: ${gekozen.soort} ${omschrijving}\nklant ${b.vanNummer}${lead.klant_naam ? ` (${lead.klant_naam})` : ''}` +
-      `\n${agendaNotitie(lead)}` +
-      (eventId ? '\nStaat in je Google Agenda.' : MEELEZEN ? '\n(meeleesmodus: niet in Google gezet)' : '') +
-      `\n\n${await gesprekVoorMonteur(lead.id)}`,
-  );
-  await bestandenNaarMonteur(monteurId, lead);
+  await dossierNaarMonteur(monteurId, lead.id, {
+    kop: `Ingepland en aan jou overgedragen — ${gekozen.soort} ${omschrijving}`,
+    extra: [
+      eventId ? 'Staat in je Google Agenda.' : MEELEZEN ? '(meeleesmodus: niet in Google gezet)' : 'Let op: niet in Google Agenda gezet.',
+      'De bot heeft de klant om het adres gevraagd; dat antwoord komt bij jou binnen.',
+    ],
+  });
   if (gekozen.soort === 'montage' && offerteActief(profiel)) await offertevoorstel(monteurId, lead, profiel);
 }
 
@@ -783,6 +914,10 @@ async function naarKlant(
   monteurId: string,
   soort: string,
 ) {
+  if (await zelfOvergenomen(leadId)) {
+    console.log(`bericht aan ${nummer} niet verstuurd: de monteur heeft het gesprek overgenomen`);
+    return;
+  }
   if (MEELEZEN) {
     await naarMonteur(monteurId, `[meelezen · ${soort}] naar ${nummer}:\n\n${tekst}`);
   } else {
@@ -828,6 +963,7 @@ function meldingIngepland(
     lead.leverancier ? `Leverancier: ${lead.leverancier}` : null,
     lead.omvang ? `Omvang: ${lead.omvang}` : null,
     lead.installatiewerk?.length ? `Installatie: ${lead.installatiewerk.join(', ')}` : null,
+    ...(watRegels(lead).length ? ['', 'Wat:', ...watRegels(lead)] : []),
     '',
     'Voorgesteld:',
     ...besluit.slots.map((s) => `  ${fmt.format(s.start)}`),
@@ -1011,17 +1147,26 @@ function pakKwalificatie(lead: any): Kwalificatie {
   for (const v of LEAD_VELDEN) {
     if (lead[v] !== null && lead[v] !== undefined) k[v] = lead[v];
   }
-  const { _posten, ...werk } = lead.werk ?? {};
+  const { _posten, _service, ...werk } = lead.werk ?? {};
   if (Object.keys(werk).length) k.werk = werk;
+  // Onderdelen van een serviceklus staan in werk._service (geen eigen kolom).
+  if (Array.isArray(_service) && _service.length) k.service = _service;
   return k as Kwalificatie;
 }
 
-function naarLead(k: Kwalificatie): Record<string, unknown> {
+/** `posten`: eerder gegeven prijsposten, zodat een update ze niet wist. */
+function naarLead(k: Kwalificatie, posten?: unknown): Record<string, unknown> {
   const uit: Record<string, unknown> = {};
   for (const v of LEAD_VELDEN) {
     if (k[v] !== undefined) uit[v] = k[v];
   }
-  if (k.werk) uit.werk = k.werk;
+  if (k.werk || k.service?.length || posten) {
+    uit.werk = {
+      ...(k.werk ?? {}),
+      ...(k.service?.length ? { _service: k.service } : {}),
+      ...(Array.isArray(posten) ? { _posten: posten } : {}),
+    };
+  }
   return uit;
 }
 
@@ -1067,9 +1212,11 @@ async function historie(leadId: string) {
     .from('berichten')
     .select('afzender, tekst')
     .eq('lead_id', leadId)
-    .order('verzonden_op', { ascending: true })
+    // De LAATSTE 20, in tijdsvolgorde. (Tot 28-10-2026 stond hier ascending +
+    // limit, waardoor het model bij een lang gesprek alleen het begin zag.)
+    .order('verzonden_op', { ascending: false })
     .limit(20);
-  return (data ?? []) as { afzender: 'klant' | 'bot' | 'monteur'; tekst: string }[];
+  return ((data ?? []) as { afzender: 'klant' | 'bot' | 'monteur'; tekst: string }[]).reverse();
 }
 
 // ------------------------------------------------------------------ afsluiten

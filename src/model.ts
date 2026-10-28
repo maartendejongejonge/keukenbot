@@ -71,3 +71,42 @@ export async function duidBericht(systeem: string, hist: ModelBericht[], bericht
   // Onbruikbaar antwoord is per definitie onbetrouwbaar.
   return { velden: {}, antwoord: '', confidence: 0 };
 }
+
+/**
+ * Korte samenvatting van een gesprek voor de monteur (bij overdracht en
+ * inplanning, 28-10-2026). Platte tekst, hooguit vijf regels. Mislukt het,
+ * dan null: het dossier werkt ook zonder.
+ */
+export async function vatSamenVoorMonteur(gesprek: string): Promise<string | null> {
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': process.env.ANTHROPIC_API_KEY ?? '',
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: process.env.CLAUDE_MODEL || 'claude-sonnet-4-6',
+        max_tokens: 500,
+        system:
+          'Je vat een WhatsApp-gesprek tussen een klant en de digitale assistent van een keukenmonteur samen ' +
+          'voor die monteur. Hooguit vijf korte regels, elk beginnend met "- ". Noem: wat de klant wil; ' +
+          'wat er is afgesproken of toegezegd (datum, tijd, prijs); wat nog open staat of waar de klant op wacht; ' +
+          'bijzonderheden (haast, irritatie, eerder telefonisch contact, wensen). Alleen wat in het gesprek staat, ' +
+          'niets verzinnen, geen bedragen die niet genoemd zijn. Nederlands, zakelijk, geen inleiding.',
+        messages: [{ role: 'user', content: gesprek.slice(-20_000) }],
+      }),
+    });
+    const data: any = await res.json();
+    if (!res.ok) {
+      console.error('samenvatting mislukt:', res.status, data?.error?.message ?? '');
+      return null;
+    }
+    const tekst = (data.content ?? []).filter((b: any) => b.type === 'text').map((b: any) => b.text).join('').trim();
+    return tekst || null;
+  } catch (e) {
+    console.error('samenvatting mislukt:', String(e));
+    return null;
+  }
+}

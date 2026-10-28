@@ -33,9 +33,22 @@ export interface InkomendMedia {
   download(): Promise<Buffer>;
 }
 
+/**
+ * Een bericht dat de monteur zelf vanaf het botnummer stuurde (vanaf de
+ * telefoon, niet via de bot). Dan neemt hij het gesprek over en zwijgt de bot.
+ */
+export interface HandmatigBericht {
+  kanaalSleutel: string;
+  naarNummer: string;
+  tekst: string;
+}
+
 export interface Transport {
   naam: 'baileys' | 'cloud_api';
-  start(onBericht: (b: InkomendBericht) => Promise<void>): Promise<void>;
+  start(
+    onBericht: (b: InkomendBericht) => Promise<void>,
+    onHandmatig?: (b: HandmatigBericht) => Promise<void>,
+  ): Promise<void>;
   stuur(naar: string, tekst: string): Promise<void>;
   /** Een foto of bestand doorsturen (bijv. de tekening van een klant naar de monteur). */
   stuurBestand(naar: string, bestand: { bytes: Buffer; mime: string; naam: string; bijschrift?: string }): Promise<void>;
@@ -82,10 +95,42 @@ export function baileysTransport(opts: {
   // 3. Teller voor die herhaalverzoeken.
   const retryTeller = maakCache();
 
+  /** Het nummer bij een adres (…@s.whatsapp.net of een anoniem …@lid). */
+  function nummerVan(jid: string, alt?: string): string | null {
+    for (const [nummer, adres] of adresVan) if (adres === jid) return nummer;
+    const kandidaat = [jid, alt].find((j) => j?.endsWith('@s.whatsapp.net'));
+    return kandidaat ? kandidaat.replace(/@s\.whatsapp\.net$/, '').replace(/:\d+$/, '') : null;
+  }
+
+  function eigenBericht(m: any, onHandmatig: (b: HandmatigBericht) => Promise<void>, normalize: (x: any) => any) {
+    const jid: string = m.key.remoteJid ?? '';
+    if (!jid || jid.endsWith('@g.us') || jid === 'status@broadcast' || jid.endsWith('@newsletter')) return;
+    const id: string | undefined = m.key.id;
+    setTimeout(async () => {
+      if (id && verstuurd.has(id)) return; // door de bot zelf verstuurd
+      const nummer = nummerVan(jid, m.key.remoteJidAlt);
+      if (!nummer || nummer === opts.eigenNummer) return;
+      const inhoud: any = normalize(m.message) ?? {};
+      const tekst: string =
+        inhoud.conversation ??
+        inhoud.extendedTextMessage?.text ??
+        inhoud.imageMessage?.caption ??
+        inhoud.documentMessage?.caption ??
+        (inhoud.imageMessage || inhoud.documentMessage ? '[foto of bestand]' : '');
+      if (!tekst.trim()) return; // reacties, gelezen-meldingen e.d.
+      log(`handmatig bericht van de monteur aan ${nummer}`);
+      try {
+        await onHandmatig({ kanaalSleutel: opts.eigenNummer, naarNummer: nummer, tekst });
+      } catch (e) {
+        log(`handmatig bericht verwerken mislukt: ${String(e)}`);
+      }
+    }, 5_000);
+  }
+
   return {
     naam: 'baileys',
 
-    async start(onBericht) {
+    async start(onBericht, onHandmatig) {
       const {
         default: makeWASocket,
         useMultiFileAuthState,
@@ -131,7 +176,7 @@ export function baileysTransport(opts: {
             return;
           }
           log('verbinding weg, opnieuw proberen');
-          setTimeout(() => this.start(onBericht), 5_000);
+          setTimeout(() => this.start(onBericht, onHandmatig), 5_000);
         }
       });
 
@@ -139,7 +184,13 @@ export function baileysTransport(opts: {
         if (type !== 'notify') return;
 
         for (const m of messages) {
-          if (m.key.fromMe) continue;
+          if (m.key.fromMe) {
+            // Eigen bericht. Wat de bot zelf stuurt staat in `verstuurd`; de
+            // rest typte de monteur op de telefoon met het botnummer. Even
+            // wachten, want de bot zet het id pas na het versturen in de lijst.
+            if (onHandmatig) eigenBericht(m, onHandmatig, normalizeMessageContent);
+            continue;
+          }
           const jid: string = m.key.remoteJid ?? '';
           if (jid.endsWith('@g.us')) continue;          // geen groepen
           if (jid === 'status@broadcast') continue;     // geen statusupdates
