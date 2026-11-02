@@ -1,0 +1,9 @@
+; Hoort bij pico-auto-update.timer en deploy/auto-update.sh (02-11-2026).
+[Unit]
+Description=Pico: nieuwe versie van GitHub uitrollen
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /opt/keukenbot/deploy/auto-update.sh

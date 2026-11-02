@@ -1,0 +1,11 @@
+; Elke 5 minuten kijken of er een nieuwe versie op GitHub staat.
+[Unit]
+Description=Pico: elke 5 minuten bijwerken
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=5min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

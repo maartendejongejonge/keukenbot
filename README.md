@@ -330,6 +330,28 @@ archief/sanne/                      de opgeheven Supabase-bot, alleen ter naslag
 web/                                de webinterface voor monteurs (Next.js op Vercel), zie web/README.md
 ```
 
+## Avondcheck en automatisch bijwerken (02-11-2026)
+
+Elke avond om 20:45 kijkt een geplande Claude-taak ("Pico avondcheck") de
+gesprekken van die dag na, als er nieuwe klantberichten zijn. Bevindingen
+die in de code op te lossen zijn, past hij zelf aan, met een test erbij, en
+pusht hij naar `main`. De server rolt een nieuwe `main` binnen 5 minuten zelf
+uit (`deploy/auto-update.sh`, timer `pico-auto-update.timer`) en gaat terug
+naar de vorige versie als de bot daarna niet stabiel draait.
+
+Wat de avondcheck **nooit** zelf doet: prijzen, staffel, uurnormen,
+reiskosten of zonelijst aanpassen; bedrijfsbesluiten (wanneer overdragen,
+telefoonnummer, offertes); database-migraties, `.env`, `deploy/` of de
+WhatsApp-koppeling; klantgegevens in de (openbare) repo zetten. Dat komt als
+voorstel in zijn rapport. Een nieuwe migratie rolt de server ook nooit zelf uit.
+
+- Logboek van de checks: tabel `pico_checks` in Supabase.
+- GitHub-token voor het pushen: tabel `pico_geheimen` (`naam = 'github_token'`),
+  RLS aan zonder policies.
+- Logboek van het uitrollen: `journalctl -t pico-auto -n 50`.
+- Uitzetten: `sudo systemctl disable --now pico-auto-update.timer` en de
+  geplande taak pauzeren.
+
 ## Op de server zetten of bijwerken
 
 **Snelste manier (laptop):** dubbelklik `update-pico.bat` in
